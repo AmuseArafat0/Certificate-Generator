@@ -59,40 +59,6 @@ body {
   100%{transform:translate(var(--dx4),var(--dy4)) scale(1);opacity:.6;}
 }
 
-/* ── TINKER BELL FAIRY ── */
-#tink-fairy{
-  position:fixed;pointer-events:none;z-index:2;
-  bottom:10vh;right:4vw;
-  width:88px;height:88px;
-  filter:drop-shadow(0 0 12px #b8f5d0) drop-shadow(0 0 26px rgba(62,207,142,.5));
-  animation:tinkfloat 4s ease-in-out infinite,tinkdrift 20s ease-in-out infinite alternate;
-}
-@keyframes tinkfloat{
-  0%,100%{transform:translateY(0) rotate(-4deg);}
-  50%    {transform:translateY(-16px) rotate(4deg);}
-}
-@keyframes tinkdrift{
-  0%  {right:4vw;bottom:10vh;}
-  30% {right:14vw;bottom:20vh;}
-  60% {right:7vw;bottom:30vh;}
-  100%{right:2vw;bottom:16vh;}
-}
-#tink-wings{transform-origin:50% 58%;animation:wingflap .32s ease-in-out infinite alternate;}
-@keyframes wingflap{
-  from{transform:scaleX(1) skewY(0deg);}
-  to  {transform:scaleX(.68) skewY(7deg);}
-}
-
-/* ── WAND SPARKLE TRAIL ── */
-.wand-spark{
-  position:fixed;border-radius:50%;pointer-events:none;z-index:1;
-  animation:sparkle var(--sd,.9s) var(--ss,0s) ease-out forwards;
-}
-@keyframes sparkle{
-  0%  {opacity:1;transform:translate(0,0) scale(1) rotate(0deg);}
-  100%{opacity:0;transform:translate(var(--sx,10px),var(--sy,-24px)) scale(0) rotate(180deg);}
-}
-
 /* ── LEAF FLOAT ── */
 .leaf{
   position:fixed;pointer-events:none;z-index:0;font-size:var(--lsz,16px);
@@ -335,44 +301,6 @@ footer span{color:var(--gold);text-shadow:0 0 8px rgba(247,217,122,.4);}
 </head>
 <body>
 <canvas id="starfield"></canvas>
-
-<!-- TINKER BELL FAIRY SVG -->
-<svg id="tink-fairy" viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg">
-  <!-- wings -->
-  <g id="tink-wings" opacity=".85">
-    <ellipse cx="28" cy="44" rx="22" ry="11" fill="#a8edca" opacity=".55" transform="rotate(-20,28,44)"/>
-    <ellipse cx="62" cy="44" rx="22" ry="11" fill="#a8edca" opacity=".55" transform="rotate(20,62,44)"/>
-    <ellipse cx="24" cy="52" rx="14" ry="7" fill="#b8f5d0" opacity=".4" transform="rotate(10,24,52)"/>
-    <ellipse cx="66" cy="52" rx="14" ry="7" fill="#b8f5d0" opacity=".4" transform="rotate(-10,66,52)"/>
-  </g>
-  <!-- body -->
-  <ellipse cx="45" cy="52" rx="9" ry="13" fill="#3ecf8e"/>
-  <!-- dress petal -->
-  <ellipse cx="45" cy="60" rx="13" ry="7" fill="#2ab878" opacity=".9"/>
-  <!-- head -->
-  <circle cx="45" cy="32" r="11" fill="#f5c89a"/>
-  <!-- hair bun -->
-  <ellipse cx="45" cy="22" rx="7" ry="5" fill="#f7d97a"/>
-  <circle cx="51" cy="24" r="4" fill="#f7d97a"/>
-  <!-- eyes -->
-  <circle cx="41" cy="31" r="1.5" fill="#2d4a3e"/>
-  <circle cx="49" cy="31" r="1.5" fill="#2d4a3e"/>
-  <!-- smile -->
-  <path d="M42 36 Q45 39 48 36" stroke="#c8845a" stroke-width="1.2" fill="none" stroke-linecap="round"/>
-  <!-- wand -->
-  <line x1="56" y1="46" x2="74" y2="28" stroke="#f7d97a" stroke-width="2" stroke-linecap="round"/>
-  <polygon points="74,22 77,28 71,28" fill="#f7d97a" filter="url(#gstar)"/>
-  <!-- star sparkles around wand -->
-  <text x="68" y="20" font-size="7" fill="#f7d97a" opacity=".9">✦</text>
-  <text x="78" y="32" font-size="5" fill="#b8f5d0" opacity=".8">✦</text>
-  <text x="60" y="26" font-size="4" fill="#fff" opacity=".7">✦</text>
-  <defs>
-    <filter id="gstar" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="1.5" result="blur"/>
-      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-  </defs>
-</svg>
 
 <div class="bg-glow"></div>
 <div class="wrapper">
@@ -896,34 +824,6 @@ function hideErr(el){ el.classList.remove('show'); }
   }
 })();
 
-/* ── WAND SPARKLE TRAIL ────────────────────────────────────────────── */
-(function(){
-  var fairy=document.getElementById('tink-fairy');
-  var colors=['#f7d97a','#b8f5d0','#ffffff','#fbbf24','#a8edca'];
-  setInterval(function(){
-    var rect=fairy.getBoundingClientRect();
-    // wand tip is roughly top-right of the fairy
-    var wx=rect.right-rect.width*.1;
-    var wy=rect.top+rect.height*.25;
-    for(var i=0;i<3;i++){
-      var sp=document.createElement('div');
-      sp.className='wand-spark';
-      var sz=(Math.random()*5+3)+'px';
-      sp.style.cssText=[
-        'width:'+sz,'height:'+sz,
-        'left:'+(wx+Math.random()*16-8)+'px',
-        'top:'+(wy+Math.random()*16-8)+'px',
-        'background:'+colors[Math.floor(Math.random()*colors.length)],
-        '--sd:'+(Math.random()*.6+.4)+'s',
-        '--ss:'+(Math.random()*.3)+'s',
-        '--sx:'+(Math.random()*30-15)+'px',
-        '--sy:'+(-Math.random()*30-10)+'px'
-      ].join(';');
-      document.body.appendChild(sp);
-      setTimeout(function(e){ e.remove(); }, 1200, sp);
-    }
-  },400);
-})();
 </script>
 </body>
 </html>
