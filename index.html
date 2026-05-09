@@ -153,17 +153,6 @@ h1 em{font-style:normal;background:var(--accent-g);-webkit-background-clip:text;
 .session-name{font-size:15px;font-weight:700;margin-bottom:6px;position:relative;z-index:1;}
 .session-cols{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;line-height:1.7;position:relative;z-index:1;}
 
-/* SIZE ROW */
-.size-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
-.size-row label{font-size:14px;font-weight:600;}
-.size-input{
-  background:var(--s2);border:1px solid var(--border2);border-radius:8px;
-  color:var(--text);font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:500;
-  padding:10px 14px;width:90px;outline:none;transition:border-color .2s;
-}
-.size-input:focus{border-color:var(--accent);}
-.size-hint{font-size:12px;color:var(--muted);}
-
 /* GENERATE BTN */
 .gen-btn{
   width:100%;padding:18px;background:var(--accent-g);color:#fff;border:none;
@@ -335,17 +324,6 @@ footer span{color:var(--accent);}
   </div>
 </div>
 
-<!-- STEP 3 -->
-<div class="card" style="animation-delay:.15s">
-  <div class="card-title">Output Settings</div>
-  <div class="size-row">
-    <label>Max size per file:</label>
-    <input type="number" class="size-input" id="sizeLimit" value="2" min="0.1" max="500" step="0.1" />
-    <span style="font-size:14px;font-weight:600">MB</span>
-    <span class="size-hint">Larger files are split into Part 1, Part 2&hellip;</span>
-  </div>
-</div>
-
 <button class="gen-btn" id="generateBtn" disabled>
   Generate Certificate File <span class="arrow">&#8594;</span>
 </button>
@@ -455,8 +433,7 @@ var fileInput   = $('fileInput'),
     partsList   = $('partsList'),
     dlAllBtn    = $('dlAllBtn'),
     resultTag   = $('resultTag'),
-    previewTable= $('previewTable'),
-    sizeLimit   = $('sizeLimit');
+    previewTable= $('previewTable');
 
 /* ── UPLOAD ────────────────────────────────────────────────────────── */
 uploadZone.addEventListener('dragover', function(e){ e.preventDefault(); uploadZone.classList.add('drag-over'); });
@@ -513,8 +490,7 @@ generateBtn.addEventListener('click', generate);
 
 function generate() {
   var tpl = T[chosenDay];
-  var maxBytes = parseFloat(sizeLimit.value) * 1024 * 1024;
-  if (isNaN(maxBytes) || maxBytes <= 0) { alert('Enter a valid size limit.'); return; }
+  var maxBytes = 2 * 1024 * 1024;
 
   statusBar.classList.add('show');
   statusText.textContent = 'Building certificate rows…';
@@ -560,30 +536,33 @@ function splitBySize(rows, cols, maxBytes) {
 
   var headerBytes = new Blob([cols.join(',') + '\n']).size;
 
-  // Pre-compute every row's byte size
+  // Pre-compute every row's byte size once
   var rowSizes = rows.map(function(row) {
     var line = cols.map(function(c) { return esc(row[c]); }).join(',') + '\n';
     return new Blob([line]).size;
   });
-  var totalBytes = headerBytes + rowSizes.reduce(function(a, b) { return a + b; }, 0);
 
-  // Minimum parts needed so each part can fit under maxBytes
-  var numParts = Math.max(1, Math.ceil(totalBytes / maxBytes));
-
-  // Aim for equal rows per part; shrink if any chunk still exceeds the limit
-  var rowsPerPart = Math.ceil(rows.length / numParts);
-  var safe = false;
-  while (!safe && rowsPerPart >= 1) {
-    safe = true;
-    for (var s = 0; s < rows.length; s += rowsPerPart) {
-      var slice = rowSizes.slice(s, s + rowsPerPart);
-      var chunkBytes = headerBytes + slice.reduce(function(a, b) { return a + b; }, 0);
-      if (chunkBytes > maxBytes) { safe = false; break; }
+  // Check if splitting into `n` equal parts all fit under maxBytes
+  function fitsInParts(n) {
+    var perPart = Math.ceil(rows.length / n);
+    for (var s = 0; s < rows.length; s += perPart) {
+      var chunk = rowSizes.slice(s, s + perPart);
+      var chunkBytes = headerBytes + chunk.reduce(function(a, b) { return a + b; }, 0);
+      if (chunkBytes > maxBytes) return false;
     }
-    if (!safe) rowsPerPart--;
+    return true;
   }
-  if (rowsPerPart < 1) rowsPerPart = 1;
 
+  // Binary search: find the minimum number of parts needed
+  var lo = 1, hi = rows.length, numParts = rows.length;
+  while (lo <= hi) {
+    var mid = Math.floor((lo + hi) / 2);
+    if (fitsInParts(mid)) { numParts = mid; hi = mid - 1; }
+    else lo = mid + 1;
+  }
+
+  // Split into exactly numParts equal chunks
+  var rowsPerPart = Math.ceil(rows.length / numParts);
   var parts = [];
   for (var i = 0; i < rows.length; i += rowsPerPart) {
     parts.push(rows.slice(i, i + rowsPerPart));
