@@ -531,11 +531,22 @@ function generate() {
     };
     var dayLabel = labels[chosenDay];
 
-    // Row index 0 is the org/verification row — insert it as row 2 in every part after the first
-    var orgRow = rows[0];
+    // Row 2 of the main file (mainData index 1) is the org/verification row
+    // Build it through the same template mapping so columns match exactly
+    var orgRow = null;
+    if (mainData[1]) {
+      var r2 = mainData[1];
+      orgRow = {};
+      tpl.cols.forEach(function(c){
+        if (c === 'Name')       orgRow[c] = tpl.nameBlank ? '' : (r2['Name']  != null ? r2['Name']  : '');
+        else if (c === 'Phone') orgRow[c] = r2['Phone'] != null ? r2['Phone'] : '';
+        else                    orgRow[c] = tpl.k[c]   != null ? tpl.k[c]   : '';
+      });
+    }
 
     parts.forEach(function(pRows, i){
       var finalRows = pRows;
+      // Insert the fixed org row at position 2 (index 1) in every part after the first
       if (i > 0 && orgRow) {
         finalRows = [pRows[0], orgRow].concat(pRows.slice(1));
       }
