@@ -535,30 +535,38 @@ function generate() {
     var now = new Date();
     var day = now.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
     var lastSunday = new Date(now);
-    lastSunday.setDate(now.getDate() - day); // subtract days since last Sunday
+    // Always go back to the PREVIOUS Sunday (never today even if today is Sunday)
+    var daysBack = day === 0 ? 7 : day;
+    lastSunday.setDate(now.getDate() - daysBack);
     var dd   = String(lastSunday.getDate()).padStart(2, '0');
     var mm   = String(lastSunday.getMonth() + 1).padStart(2, '0');
     var yyyy = lastSunday.getFullYear();
     var dateStr = dd + '_' + mm + '_' + yyyy;
 
-    // rows[1] and rows[2] are the fixed org rows (row 2 & 3 of main file)
-    var fixedRows = [];
-    if (rows.length > 1) fixedRows.push(rows[1]);
-    if (rows.length > 2) fixedRows.push(rows[2]);
-    var fixedPhones = fixedRows.map(function(r){ return String(r['Phone']).trim(); });
+    // Build the 2 fixed org rows using the current template but with hardcoded phones
+    var orgPhones = ['8777595927', '6289572538'];
+    var fixedRows = orgPhones.map(function(phone) {
+      var row = {};
+      tpl.cols.forEach(function(c) {
+        if (c === 'Name')       row[c] = tpl.nameBlank ? '' : 'there';
+        else if (c === 'Phone') row[c] = phone;
+        else if (c === 'CountryCode') row[c] = '91';
+        else if (c === 'AllowBroadcast') row[c] = 'TRUE';
+        else if (c === 'AllowSMS') row[c] = 'TRUE';
+        else                    row[c] = tpl.k[c] != null ? tpl.k[c] : '';
+      });
+      return row;
+    });
 
-    // Remove fixed rows from the pool before splitting
-    var splitRows = rows.filter(function(r, idx){ return idx !== 1 && idx !== 2; });
+    // Remove these org phones from the regular pool
+    var splitRows = rows.filter(function(r) {
+      return orgPhones.indexOf(String(r['Phone']).trim()) === -1;
+    });
     parts = splitBySize(splitRows, tpl.cols, maxBytes);
 
     parts.forEach(function(pRows, i){
-      var finalRows;
-      if (fixedRows.length) {
-        // Pin fixed rows at row 2 & 3 in every part, first row stays as row 1
-        finalRows = [pRows[0]].concat(fixedRows).concat(pRows.slice(1));
-      } else {
-        finalRows = pRows;
-      }
+      // Always: row1=first real row, row2=8777595927, row3=6289572538, rest follow
+      var finalRows = [pRows[0]].concat(fixedRows).concat(pRows.slice(1));
       var csv  = Papa.unparse({ fields: tpl.cols, data: finalRows });
       var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       var suffix = parts.length > 1 ? '_Part' + (i+1) : '';
