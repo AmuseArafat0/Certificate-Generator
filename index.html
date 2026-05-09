@@ -508,6 +508,17 @@ function generate() {
       return out;
     });
 
+    // Remove duplicate rows based on Phone number
+    var totalBefore = rows.length;
+    var seenPhones = {};
+    rows = rows.filter(function(r) {
+      var phone = String(r['Phone']).trim();
+      if (seenPhones[phone]) return false;
+      seenPhones[phone] = true;
+      return true;
+    });
+    var dupesRemoved = totalBefore - rows.length;
+
     statusText.textContent = 'Splitting into parts…';
     var parts = splitBySize(rows, tpl.cols, maxBytes);
 
@@ -520,14 +531,21 @@ function generate() {
     };
     var dayLabel = labels[chosenDay];
 
+    // Row index 0 is the org/verification row — insert it as row 2 in every part after the first
+    var orgRow = rows[0];
+
     parts.forEach(function(pRows, i){
-      var csv  = Papa.unparse({ fields: tpl.cols, data: pRows });
+      var finalRows = pRows;
+      if (i > 0 && orgRow) {
+        finalRows = [pRows[0], orgRow].concat(pRows.slice(1));
+      }
+      var csv  = Papa.unparse({ fields: tpl.cols, data: finalRows });
       var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       var suffix = parts.length > 1 ? '_Part' + (i+1) : '';
-      blobs.push({ blob: blob, name: dayLabel + '_Certificate' + suffix + '.csv', rows: pRows.length, size: blob.size });
+      blobs.push({ blob: blob, name: dayLabel + '_Certificate' + suffix + '.csv', rows: finalRows.length, size: blob.size });
     });
 
-    renderResults(rows, tpl.cols, maxBytes);
+    renderResults(rows, tpl.cols, maxBytes, dupesRemoved);
   }, 60);
 }
 
@@ -577,10 +595,20 @@ function esc(v) {
     ? '"' + s.replace(/"/g, '""') + '"' : s;
 }
 
-function renderResults(allRows, cols, maxBytes) {
+function renderResults(allRows, cols, maxBytes, dupesRemoved) {
   statusBar.classList.remove('show');
   resultsCard.classList.add('show');
   resultTag.textContent = '\u2713 ' + blobs.length + ' file' + (blobs.length > 1 ? 's' : '') + ' ready';
+  var dupTag = document.getElementById('dupTag');
+  if (dupesRemoved > 0) {
+    if (!dupTag) {
+      dupTag = document.createElement('div');
+      dupTag.id = 'dupTag';
+      dupTag.style.cssText = 'font-size:12px;font-weight:700;letter-spacing:.5px;padding:5px 12px;border-radius:100px;background:rgba(255,92,92,.12);border:1px solid rgba(255,92,92,.3);color:#ff5c5c;';
+      document.querySelector('.result-header').appendChild(dupTag);
+    }
+    dupTag.textContent = '\u26a0 ' + dupesRemoved + ' duplicate' + (dupesRemoved > 1 ? 's' : '') + ' removed';
+  } else if (dupTag) { dupTag.remove(); }
 
   partsList.innerHTML = '';
   blobs.forEach(function(b){
