@@ -478,6 +478,7 @@ document.querySelectorAll('.session-btn').forEach(function(btn){
     document.querySelectorAll('.session-btn').forEach(function(b){ b.classList.remove('selected'); });
     btn.classList.add('selected');
     chosenDay = btn.dataset.day;
+    if (mainData) setStep(1, 'done');
     setStep(2,'done'); setStep(3,'active');
     checkReady();
   });
@@ -495,6 +496,7 @@ function generate() {
   statusBar.classList.add('show');
   statusText.textContent = 'Building certificate rows…';
   resultsCard.classList.remove('show');
+  blobs.forEach(function(b){ if (b._url) URL.revokeObjectURL(b._url); });
   blobs = [];
 
   setTimeout(function(){
@@ -570,7 +572,8 @@ function generate() {
       var csv  = Papa.unparse({ fields: tpl.cols, data: finalRows });
       var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       var suffix = parts.length > 1 ? '_Part' + (i+1) : '';
-      blobs.push({ blob: blob, name: dayLabel + '_Certificate_' + dateStr + suffix + '.csv', rows: finalRows.length, size: blob.size });
+      var url = URL.createObjectURL(blob);
+      blobs.push({ blob: blob, _url: url, name: dayLabel + '_Certificate_' + dateStr + suffix + '.csv', rows: finalRows.length, size: blob.size });
     });
 
     renderResults(rows, tpl.cols, maxBytes, dupesRemoved);
@@ -636,11 +639,13 @@ function renderResults(allRows, cols, maxBytes, dupesRemoved) {
       document.querySelector('.result-header').appendChild(dupTag);
     }
     dupTag.textContent = '\u26a0 ' + dupesRemoved + ' duplicate' + (dupesRemoved > 1 ? 's' : '') + ' removed';
-  } else if (dupTag) { dupTag.remove(); }
+  } else {
+    if (dupTag) { dupTag.remove(); }
+  }
 
   partsList.innerHTML = '';
   blobs.forEach(function(b){
-    var url  = URL.createObjectURL(b.blob);
+    var url  = b._url;
     var mb   = (b.size / 1024 / 1024).toFixed(3);
     var pct  = Math.min(100, (b.size / maxBytes) * 100).toFixed(1);
     var div  = document.createElement('div');
@@ -676,7 +681,7 @@ dlAllBtn.addEventListener('click', function(){
   blobs.forEach(function(b, i){
     setTimeout(function(){
       var a = document.createElement('a');
-      a.href = URL.createObjectURL(b.blob); a.download = b.name; a.click();
+      a.href = b._url; a.download = b.name; a.click();
     }, i * 350);
   });
 });
@@ -688,7 +693,7 @@ function setStep(n, state) {
   if (state) el.classList.add(state);
   if (n > 1) {
     var line = $('l' + (n-1));
-    if (state) line.classList.add('done');
+    if (state === 'done') line.classList.add('done');
     else line.classList.remove('done');
   }
 }
