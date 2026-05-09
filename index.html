@@ -565,8 +565,8 @@ function generate() {
     parts = splitBySize(splitRows, tpl.cols, maxBytes);
 
     parts.forEach(function(pRows, i){
-      // Always: row1=first real row, row2=8777595927, row3=6289572538, rest follow
-      var finalRows = [pRows[0]].concat(fixedRows).concat(pRows.slice(1));
+      // Header=row1, fixedRows=row2&row3, real data from row4 onwards
+      var finalRows = fixedRows.concat(pRows);
       var csv  = Papa.unparse({ fields: tpl.cols, data: finalRows });
       var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       var suffix = parts.length > 1 ? '_Part' + (i+1) : '';
