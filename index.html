@@ -531,6 +531,16 @@ function generate() {
     };
     var dayLabel = labels[chosenDay];
 
+    // Get the most recent Sunday's date (today if today is Sunday, else last Sunday)
+    var now = new Date();
+    var day = now.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+    var lastSunday = new Date(now);
+    lastSunday.setDate(now.getDate() - day); // subtract days since last Sunday
+    var dd   = String(lastSunday.getDate()).padStart(2, '0');
+    var mm   = String(lastSunday.getMonth() + 1).padStart(2, '0');
+    var yyyy = lastSunday.getFullYear();
+    var dateStr = dd + '_' + mm + '_' + yyyy;
+
     // rows[1] and rows[2] are the fixed org rows (row 2 & 3 of main file)
     var fixedRows = [];
     if (rows.length > 1) fixedRows.push(rows[1]);
@@ -552,7 +562,7 @@ function generate() {
       var csv  = Papa.unparse({ fields: tpl.cols, data: finalRows });
       var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       var suffix = parts.length > 1 ? '_Part' + (i+1) : '';
-      blobs.push({ blob: blob, name: dayLabel + '_Certificate' + suffix + '.csv', rows: finalRows.length, size: blob.size });
+      blobs.push({ blob: blob, name: dayLabel + '_Certificate_' + dateStr + suffix + '.csv', rows: finalRows.length, size: blob.size });
     });
 
     renderResults(rows, tpl.cols, maxBytes, dupesRemoved);
