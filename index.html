@@ -3,727 +3,639 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Certificate CSV Generator</title>
+<title>Be10X · Certificate Generator</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
-  :root {
-    --bg: #0a0a0f;
-    --surface: #12121a;
-    --surface2: #1c1c28;
-    --border: #2a2a3e;
-    --accent: #6c63ff;
-    --accent2: #ff6b6b;
-    --accent3: #43e97b;
-    --text: #e8e8f0;
-    --muted: #7070a0;
-    --radius: 14px;
-  }
+:root {
+  --bg:        #05050d;
+  --s1:        #0d0d1a;
+  --s2:        #13131f;
+  --s3:        #1a1a2e;
+  --border:    rgba(255,255,255,0.07);
+  --border2:   rgba(255,255,255,0.12);
+  --accent:    #7c5cfc;
+  --accent-g:  linear-gradient(135deg,#7c5cfc,#b06afc);
+  --green:     #22d07a;
+  --red:       #ff5c5c;
+  --text:      #f0f0f8;
+  --muted:     #6b6b8a;
+  --r:         16px;
+}
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
-  body {
-    font-family: 'DM Mono', monospace;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 40px 20px 80px;
-  }
+body {
+  font-family:'Plus Jakarta Sans',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:48px 20px 100px;
+}
 
-  /* animated background grid */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(108,99,255,0.04) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(108,99,255,0.04) 1px, transparent 1px);
-    background-size: 60px 60px;
-    pointer-events: none;
-    z-index: 0;
-  }
+.bg-glow {
+  position:fixed;top:0;left:50%;transform:translateX(-50%);
+  width:900px;height:600px;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(124,92,252,.16) 0%,transparent 70%);
+}
 
-  .wrapper {
-    position: relative;
-    z-index: 1;
-    width: 100%;
-    max-width: 780px;
-  }
+.wrapper{position:relative;z-index:1;width:100%;max-width:760px;}
 
-  /* HEADER */
-  header {
-    text-align: center;
-    margin-bottom: 50px;
-  }
+/* HEADER */
+header{text-align:center;margin-bottom:52px;}
 
-  .badge {
-    display: inline-block;
-    font-family: 'Syne', sans-serif;
-    font-size: 11px;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: var(--accent);
-    border: 1px solid var(--accent);
-    padding: 4px 14px;
-    border-radius: 100px;
-    margin-bottom: 18px;
-    animation: fadein .6s ease;
-  }
+.logo-row {
+  display:inline-flex;align-items:center;gap:10px;
+  background:var(--s2);border:1px solid var(--border2);
+  border-radius:100px;padding:8px 18px 8px 12px;margin-bottom:28px;
+  animation:rise .5s ease both;
+}
+.logo-dot {
+  width:28px;height:28px;border-radius:50%;
+  background:var(--accent-g);
+  display:flex;align-items:center;justify-content:center;font-size:14px;
+}
+.logo-name{
+  font-size:13px;font-weight:700;letter-spacing:.5px;
+  background:var(--accent-g);-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
 
-  h1 {
-    font-family: 'Syne', sans-serif;
-    font-size: clamp(28px, 5vw, 48px);
-    font-weight: 800;
-    line-height: 1.1;
-    letter-spacing: -1px;
-    animation: fadein .7s ease;
-  }
+h1{
+  font-size:clamp(30px,5.5vw,52px);font-weight:800;
+  line-height:1.1;letter-spacing:-1.5px;
+  animation:rise .6s .05s ease both;
+}
+h1 em{font-style:normal;background:var(--accent-g);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
 
-  h1 span { color: var(--accent); }
+.subtitle{margin-top:14px;color:var(--muted);font-size:15px;font-weight:500;animation:rise .6s .1s ease both;}
 
-  .subtitle {
-    color: var(--muted);
-    font-size: 13px;
-    margin-top: 12px;
-    animation: fadein .8s ease;
-  }
+/* STEPS */
+.steps-row{display:flex;align-items:center;margin-bottom:36px;animation:rise .6s .15s ease both;}
+.step{display:flex;align-items:center;gap:10px;flex:1;}
+.step-num{
+  width:32px;height:32px;border-radius:50%;
+  border:2px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;color:var(--muted);transition:all .3s;flex-shrink:0;
+}
+.step.active .step-num{border-color:var(--accent);color:#fff;background:var(--accent);box-shadow:0 0 16px rgba(124,92,252,.5);}
+.step.done .step-num{border-color:var(--green);background:var(--green);color:#000;}
+.step-label{font-size:13px;font-weight:600;color:var(--muted);transition:color .3s;}
+.step.active .step-label,.step.done .step-label{color:var(--text);}
+.step-line{height:2px;flex:1;background:var(--border);margin:0 8px;transition:background .3s;}
+.step-line.done{background:var(--green);}
 
-  /* STEP LABELS */
-  .step-label {
-    font-family: 'Syne', sans-serif;
-    font-size: 11px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 14px;
-  }
+/* CARD */
+.card{
+  background:var(--s1);border:1px solid var(--border);border-radius:var(--r);
+  padding:28px;margin-bottom:20px;animation:rise .5s ease both;transition:border-color .3s;
+}
+.card:hover{border-color:var(--border2);}
+.card-title{
+  font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--muted);margin-bottom:20px;display:flex;align-items:center;gap:8px;
+}
+.card-title::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);}
 
-  /* CARD */
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 30px;
-    margin-bottom: 24px;
-    animation: slidein .5s ease;
-  }
+/* UPLOAD */
+.upload-zone{
+  border:2px dashed var(--border2);border-radius:12px;padding:44px 24px;
+  text-align:center;cursor:pointer;transition:all .25s;position:relative;background:var(--s2);
+}
+.upload-zone:hover,.upload-zone.drag-over{border-color:var(--accent);background:rgba(124,92,252,.06);}
+.upload-zone.has-file{border-style:solid;border-color:var(--green);background:rgba(34,208,122,.04);}
+.upload-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.upload-icon{font-size:40px;margin-bottom:12px;}
+.upload-main{font-size:15px;font-weight:600;margin-bottom:6px;}
+.upload-sub{font-size:13px;color:var(--muted);}
+.upload-chip{
+  display:none;align-items:center;gap:8px;margin-top:16px;padding:8px 14px;
+  background:rgba(34,208,122,.12);border:1px solid rgba(34,208,122,.3);
+  border-radius:8px;font-size:13px;font-weight:600;color:var(--green);
+  justify-content:center;
+}
+.upload-chip.show{display:inline-flex;}
 
-  /* FILE UPLOAD */
-  .upload-zone {
-    border: 2px dashed var(--border);
-    border-radius: 10px;
-    padding: 36px 24px;
-    text-align: center;
-    cursor: pointer;
-    transition: border-color .2s, background .2s;
-    position: relative;
-  }
-  .upload-zone:hover, .upload-zone.drag-over {
-    border-color: var(--accent);
-    background: rgba(108,99,255,0.06);
-  }
-  .upload-zone input[type="file"] {
-    position: absolute;
-    inset: 0;
-    opacity: 0;
-    cursor: pointer;
-    width: 100%;
-    height: 100%;
-  }
-  .upload-icon { font-size: 36px; margin-bottom: 10px; }
-  .upload-text { font-size: 14px; color: var(--muted); }
-  .upload-text strong { color: var(--text); }
-  .file-name {
-    margin-top: 14px;
-    font-size: 13px;
-    color: var(--accent3);
-    display: none;
-  }
-  .file-name.visible { display: block; }
+.stats-row{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;}
+.stat{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px 16px;}
+.stat-val{font-size:18px;font-weight:800;font-family:'JetBrains Mono',monospace;}
+.stat-key{font-size:11px;color:var(--muted);margin-top:2px;font-weight:500;}
 
-  /* FILE STATS */
-  .file-stats {
-    display: flex;
-    gap: 12px;
-    margin-top: 16px;
-    flex-wrap: wrap;
-  }
-  .stat-pill {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 8px 14px;
-    font-size: 12px;
-  }
-  .stat-pill .val { color: var(--accent3); font-weight: 500; }
+/* SESSION GRID */
+.session-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media(max-width:500px){.session-grid{grid-template-columns:1fr;}}
 
-  /* DAY SELECTOR */
-  .day-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-  }
-  @media (max-width: 480px) { .day-grid { grid-template-columns: 1fr; } }
+.session-btn{
+  background:var(--s2);border:2px solid var(--border);border-radius:12px;
+  padding:20px;cursor:pointer;text-align:left;color:var(--text);
+  font-family:'Plus Jakarta Sans',sans-serif;transition:all .2s;position:relative;overflow:hidden;
+}
+.session-btn::after{
+  content:'';position:absolute;inset:0;background:var(--accent-g);opacity:0;transition:opacity .2s;
+}
+.session-btn:hover{border-color:rgba(124,92,252,.5);transform:translateY(-2px);}
+.session-btn:hover::after{opacity:.05;}
+.session-btn.selected{border-color:var(--accent);}
+.session-btn.selected::after{opacity:.09;}
+.session-check{
+  width:20px;height:20px;border-radius:50%;border:2px solid var(--border2);
+  position:absolute;top:16px;right:16px;
+  display:flex;align-items:center;justify-content:center;font-size:11px;transition:all .2s;
+  z-index:1;
+}
+.session-btn.selected .session-check{background:var(--accent);border-color:var(--accent);}
+.session-btn.selected .session-check::after{content:'✓';color:#fff;font-weight:700;}
+.session-icon{font-size:26px;margin-bottom:10px;position:relative;z-index:1;}
+.session-name{font-size:15px;font-weight:700;margin-bottom:6px;position:relative;z-index:1;}
+.session-cols{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;line-height:1.7;position:relative;z-index:1;}
 
-  .day-btn {
-    background: var(--surface2);
-    border: 2px solid var(--border);
-    border-radius: 10px;
-    padding: 18px 20px;
-    cursor: pointer;
-    text-align: left;
-    transition: border-color .2s, background .2s, transform .15s;
-    color: var(--text);
-    font-family: 'DM Mono', monospace;
-  }
-  .day-btn:hover {
-    border-color: var(--accent);
-    transform: translateY(-2px);
-  }
-  .day-btn.selected {
-    border-color: var(--accent);
-    background: rgba(108,99,255,0.12);
-  }
-  .day-btn .day-name {
-    font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    font-size: 16px;
-    margin-bottom: 4px;
-  }
-  .day-btn .day-meta {
-    font-size: 11px;
-    color: var(--muted);
-  }
-  .day-btn .day-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    display: inline-block;
-    margin-right: 6px;
-    background: var(--border);
-    transition: background .2s;
-  }
-  .day-btn.selected .day-dot { background: var(--accent); }
+/* SIZE ROW */
+.size-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.size-row label{font-size:14px;font-weight:600;}
+.size-input{
+  background:var(--s2);border:1px solid var(--border2);border-radius:8px;
+  color:var(--text);font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:500;
+  padding:10px 14px;width:90px;outline:none;transition:border-color .2s;
+}
+.size-input:focus{border-color:var(--accent);}
+.size-hint{font-size:12px;color:var(--muted);}
 
-  /* SIZE LIMIT */
-  .size-row {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    flex-wrap: wrap;
-  }
-  .size-row label { font-size: 13px; color: var(--muted); white-space: nowrap; }
-  .size-input {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text);
-    font-family: 'DM Mono', monospace;
-    font-size: 14px;
-    padding: 10px 14px;
-    width: 100px;
-    outline: none;
-    transition: border-color .2s;
-  }
-  .size-input:focus { border-color: var(--accent); }
+/* GENERATE BTN */
+.gen-btn{
+  width:100%;padding:18px;background:var(--accent-g);color:#fff;border:none;
+  border-radius:var(--r);font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:16px;font-weight:800;letter-spacing:.5px;cursor:pointer;
+  transition:all .2s;box-shadow:0 8px 32px rgba(124,92,252,.35);
+  display:flex;align-items:center;justify-content:center;gap:10px;
+}
+.gen-btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 12px 40px rgba(124,92,252,.5);}
+.gen-btn:disabled{opacity:.35;cursor:not-allowed;transform:none;}
+.gen-btn .arrow{font-size:20px;transition:transform .2s;}
+.gen-btn:hover:not(:disabled) .arrow{transform:translateX(4px);}
 
-  /* GENERATE BTN */
-  .generate-btn {
-    width: 100%;
-    padding: 18px;
-    background: var(--accent);
-    color: #fff;
-    font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    font-size: 16px;
-    letter-spacing: 1px;
-    border: none;
-    border-radius: var(--radius);
-    cursor: pointer;
-    transition: opacity .2s, transform .15s, box-shadow .2s;
-    box-shadow: 0 0 30px rgba(108,99,255,0.3);
-    text-transform: uppercase;
-  }
-  .generate-btn:hover { opacity: .9; transform: translateY(-2px); box-shadow: 0 0 40px rgba(108,99,255,0.5); }
-  .generate-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+/* STATUS */
+.status-bar{
+  display:none;background:var(--s2);border:1px solid var(--border);border-radius:var(--r);
+  padding:18px 22px;margin-top:16px;align-items:center;gap:14px;
+  font-size:14px;color:var(--muted);font-weight:500;
+}
+.status-bar.show{display:flex;}
+.spinner{
+  width:18px;height:18px;flex-shrink:0;
+  border:2px solid var(--border);border-top-color:var(--accent);
+  border-radius:50%;animation:spin .7s linear infinite;
+}
 
-  /* RESULTS */
-  .results {
-    display: none;
-  }
-  .results.visible { display: block; }
+/* ERROR */
+.error-msg{
+  display:none;margin-top:12px;
+  background:rgba(255,92,92,.08);border:1px solid rgba(255,92,92,.25);
+  border-radius:10px;padding:12px 16px;font-size:13px;color:var(--red);font-weight:500;
+}
+.error-msg.show{display:block;}
 
-  .result-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 16px;
-    flex-wrap: gap;
-  }
-  .result-title {
-    font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    font-size: 18px;
-  }
-  .result-badge {
-    font-size: 11px;
-    letter-spacing: 1px;
-    color: var(--accent3);
-    background: rgba(67,233,123,0.1);
-    border: 1px solid rgba(67,233,123,0.3);
-    padding: 3px 10px;
-    border-radius: 100px;
-  }
+/* RESULTS */
+.results{display:none;}
+.results.show{display:block;}
 
-  .file-list { display: flex; flex-direction: column; gap: 10px; }
+.result-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px;}
+.result-title{font-size:20px;font-weight:800;}
+.result-tag{
+  font-size:12px;font-weight:700;letter-spacing:.5px;padding:5px 12px;border-radius:100px;
+  background:rgba(34,208,122,.12);border:1px solid rgba(34,208,122,.3);color:var(--green);
+}
 
-  .file-item {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 14px 18px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-  .file-item-info { display: flex; flex-direction: column; gap: 3px; }
-  .file-item-name { font-size: 13px; font-weight: 500; color: var(--text); }
-  .file-item-meta { font-size: 11px; color: var(--muted); }
+.parts-list{display:flex;flex-direction:column;gap:10px;}
+.part-item{
+  background:var(--s2);border:1px solid var(--border);border-radius:12px;
+  padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+}
+.part-info{display:flex;flex-direction:column;gap:5px;}
+.part-name{font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+.part-meta{font-size:12px;color:var(--muted);}
+.part-bar{height:3px;width:100px;background:var(--border);border-radius:4px;overflow:hidden;margin-top:4px;}
+.part-bar-fill{height:100%;background:var(--accent-g);border-radius:4px;}
 
-  .dl-btn {
-    background: var(--accent3);
-    color: #000;
-    border: none;
-    border-radius: 8px;
-    padding: 8px 16px;
-    font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    font-size: 12px;
-    cursor: pointer;
-    transition: opacity .2s;
-    text-decoration: none;
-    display: inline-block;
-    white-space: nowrap;
-  }
-  .dl-btn:hover { opacity: .85; }
+.dl-btn{
+  background:var(--accent-g);color:#fff;border:none;border-radius:8px;
+  padding:10px 18px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;
+  cursor:pointer;text-decoration:none;display:inline-block;transition:opacity .2s,transform .15s;white-space:nowrap;
+}
+.dl-btn:hover{opacity:.88;transform:scale(1.02);}
 
-  .dl-all-btn {
-    width: 100%;
-    padding: 14px;
-    background: transparent;
-    color: var(--accent);
-    border: 1px solid var(--accent);
-    border-radius: 10px;
-    font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    font-size: 14px;
-    cursor: pointer;
-    transition: background .2s;
-    margin-top: 14px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-  }
-  .dl-all-btn:hover { background: rgba(108,99,255,.1); }
+.dl-all-btn{
+  width:100%;margin-top:14px;padding:14px;background:transparent;color:var(--accent);
+  border:1.5px solid rgba(124,92,252,.4);border-radius:12px;
+  font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;
+  cursor:pointer;transition:all .2s;letter-spacing:.3px;
+}
+.dl-all-btn:hover{background:rgba(124,92,252,.08);border-color:var(--accent);}
 
-  /* ERROR */
-  .error-box {
-    background: rgba(255,107,107,0.1);
-    border: 1px solid rgba(255,107,107,0.3);
-    border-radius: 10px;
-    padding: 14px 18px;
-    font-size: 13px;
-    color: var(--accent2);
-    display: none;
-    margin-top: 14px;
-  }
-  .error-box.visible { display: block; }
+/* PREVIEW TABLE */
+.preview-wrap{margin-top:20px;border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.preview-label{
+  padding:10px 16px;background:var(--s3);
+  font-size:11px;font-weight:700;letter-spacing:1px;color:var(--muted);text-transform:uppercase;
+}
+.preview-scroll{overflow-x:auto;max-height:180px;overflow-y:auto;}
+.preview-table{width:100%;border-collapse:collapse;font-size:11px;font-family:'JetBrains Mono',monospace;}
+.preview-table th{
+  background:var(--s3);padding:8px 12px;text-align:left;font-weight:600;color:var(--muted);
+  white-space:nowrap;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:2;
+}
+.preview-table td{
+  padding:7px 12px;border-bottom:1px solid var(--border);
+  white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis;
+}
+.preview-table tr:last-child td{border-bottom:none;}
+.preview-table tr:hover td{background:var(--s3);}
 
-  /* STATUS */
-  .status-bar {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 14px 18px;
-    font-size: 13px;
-    color: var(--muted);
-    margin-bottom: 14px;
-    display: none;
-  }
-  .status-bar.visible { display: flex; align-items: center; gap: 10px; }
-  .spinner {
-    width: 16px; height: 16px;
-    border: 2px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin .7s linear infinite;
-    flex-shrink: 0;
-  }
+/* ANIMATIONS */
+@keyframes rise{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:none;}}
+@keyframes spin{to{transform:rotate(360deg);}}
 
-  @keyframes fadein { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-  @keyframes slidein { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  footer {
-    text-align: center;
-    margin-top: 60px;
-    font-size: 11px;
-    color: var(--muted);
-    letter-spacing: 1px;
-  }
+footer{text-align:center;margin-top:70px;font-size:12px;color:var(--muted);font-weight:500;letter-spacing:.5px;}
+footer span{color:var(--accent);}
 </style>
 </head>
 <body>
+<div class="bg-glow"></div>
 <div class="wrapper">
 
-  <header>
-    <div class="badge">Certificate Tool</div>
-    <h1>CSV <span>Generator</span></h1>
-    <p class="subtitle">Upload the Main Certificate File → Pick a session → Download split CSVs</p>
-  </header>
-
-  <!-- STEP 1: Upload -->
-  <div class="card">
-    <div class="step-label">Step 01 — Upload Main File</div>
-    <div class="upload-zone" id="uploadZone">
-      <input type="file" id="mainFileInput" accept=".csv" />
-      <div class="upload-icon">📂</div>
-      <div class="upload-text"><strong>Click or drag</strong> your Main Certificate CSV here</div>
-      <div class="file-name" id="fileName"></div>
-    </div>
-    <div class="file-stats" id="fileStats"></div>
-    <div class="error-box" id="uploadError"></div>
+<!-- HEADER -->
+<header>
+  <div class="logo-row">
+    <div class="logo-dot">🎓</div>
+    <div class="logo-name">Be10X</div>
   </div>
+  <h1>Certificate <em>Generator</em></h1>
+  <p class="subtitle">Upload the main file · pick a session · download broadcast-ready certificate files</p>
+</header>
 
-  <!-- STEP 2: Day -->
-  <div class="card">
-    <div class="step-label">Step 02 — Select Session</div>
-    <div class="day-grid">
-      <button class="day-btn" data-day="sunday_afternoon">
-        <div><span class="day-dot"></span></div>
-        <div class="day-name">Sunday Afternoon</div>
-        <div class="day-meta">Cols: datetime · brname · faqdoc · bonus</div>
-      </button>
-      <button class="day-btn" data-day="sunday_evening">
-        <div><span class="day-dot"></span></div>
-        <div class="day-name">Sunday Evening</div>
-        <div class="day-meta">Cols: message · bns · link</div>
-      </button>
-      <button class="day-btn" data-day="monday">
-        <div><span class="day-dot"></span></div>
-        <div class="day-name">Monday</div>
-        <div class="day-meta">Cols: wel · linkedinpage · message</div>
-      </button>
-      <button class="day-btn" data-day="tuesday">
-        <div><span class="day-dot"></span></div>
-        <div class="day-name">Tuesday</div>
-        <div class="day-meta">Cols: brname · ylink · message · dmus</div>
-      </button>
-    </div>
-  </div>
-
-  <!-- STEP 3: Size limit -->
-  <div class="card">
-    <div class="step-label">Step 03 — File Size Limit</div>
-    <div class="size-row">
-      <label>Max file size per part:</label>
-      <input type="number" class="size-input" id="sizeLimit" value="2" min="0.1" max="100" step="0.1" />
-      <label>MB</label>
-      <span style="font-size:12px;color:var(--muted);">(files exceeding this will be split into Part 1, Part 2 …)</span>
-    </div>
-  </div>
-
-  <!-- GENERATE -->
-  <button class="generate-btn" id="generateBtn" disabled>Generate CSV Files</button>
-
-  <div class="status-bar" id="statusBar">
-    <div class="spinner"></div>
-    <span id="statusText">Processing…</span>
-  </div>
-
-  <!-- RESULTS -->
-  <div class="results card" id="resultsCard">
-    <div class="result-header">
-      <div class="result-title">Generated Files</div>
-      <div class="result-badge" id="resultBadge">✓ Ready</div>
-    </div>
-    <div class="file-list" id="fileList"></div>
-    <button class="dl-all-btn" id="dlAllBtn">⬇ Download All Parts</button>
-  </div>
-
+<!-- STEPS -->
+<div class="steps-row">
+  <div class="step active" id="s1"><div class="step-num">1</div><div class="step-label">Upload</div></div>
+  <div class="step-line" id="l1"></div>
+  <div class="step" id="s2"><div class="step-num">2</div><div class="step-label">Session</div></div>
+  <div class="step-line" id="l2"></div>
+  <div class="step" id="s3"><div class="step-num">3</div><div class="step-label">Generate</div></div>
 </div>
 
-<footer>Built for Be10X · Certificate CSV Generator</footer>
+<!-- STEP 1 -->
+<div class="card" style="animation-delay:.05s">
+  <div class="card-title">Upload Main Certificate File</div>
+  <div class="upload-zone" id="uploadZone">
+    <input type="file" id="fileInput" accept=".csv" />
+    <div class="upload-icon" id="uploadIcon">📁</div>
+    <div class="upload-main">Drop your CSV here or <u>click to browse</u></div>
+    <div class="upload-sub">Main Certificate File &middot; .csv format</div>
+    <div class="upload-chip" id="uploadChip"><span>✓</span><span id="chipName"></span></div>
+  </div>
+  <div class="stats-row" id="statsRow"></div>
+  <div class="error-msg" id="uploadErr"></div>
+</div>
+
+<!-- STEP 2 -->
+<div class="card" style="animation-delay:.1s">
+  <div class="card-title">Select Session</div>
+  <div class="session-grid">
+
+    <button class="session-btn" data-day="sunday_afternoon">
+      <div class="session-check"></div>
+      <div class="session-icon">🌅</div>
+      <div class="session-name">Sunday Afternoon</div>
+      <div class="session-cols">certlink · notes · datetime<br>brname · faqdoc · bonus</div>
+    </button>
+
+    <button class="session-btn" data-day="sunday_evening">
+      <div class="session-check"></div>
+      <div class="session-icon">🌆</div>
+      <div class="session-name">Sunday Evening</div>
+      <div class="session-cols">certlink · notes · message<br>bns · link</div>
+    </button>
+
+    <button class="session-btn" data-day="monday">
+      <div class="session-check"></div>
+      <div class="session-icon">📅</div>
+      <div class="session-name">Monday</div>
+      <div class="session-cols">certlink · wel<br>linkedinpage · message</div>
+    </button>
+
+    <button class="session-btn" data-day="tuesday">
+      <div class="session-check"></div>
+      <div class="session-icon">📆</div>
+      <div class="session-name">Tuesday</div>
+      <div class="session-cols">brname · certlink · ylink<br>message · dmus</div>
+    </button>
+
+  </div>
+</div>
+
+<!-- STEP 3 -->
+<div class="card" style="animation-delay:.15s">
+  <div class="card-title">Output Settings</div>
+  <div class="size-row">
+    <label>Max size per file:</label>
+    <input type="number" class="size-input" id="sizeLimit" value="2" min="0.1" max="500" step="0.1" />
+    <span style="font-size:14px;font-weight:600">MB</span>
+    <span class="size-hint">Larger files are split into Part 1, Part 2&hellip;</span>
+  </div>
+</div>
+
+<button class="gen-btn" id="generateBtn" disabled>
+  Generate Certificate File <span class="arrow">&#8594;</span>
+</button>
+
+<div class="status-bar" id="statusBar">
+  <div class="spinner"></div>
+  <span id="statusText">Building certificate files…</span>
+</div>
+
+<!-- RESULTS -->
+<div class="results card" id="resultsCard" style="margin-top:20px;">
+  <div class="result-header">
+    <div class="result-title">Ready to Download</div>
+    <div class="result-tag" id="resultTag">&#10003; 1 file</div>
+  </div>
+  <div class="parts-list" id="partsList"></div>
+  <button class="dl-all-btn" id="dlAllBtn" style="display:none">&#8595; Download All Parts</button>
+  <div class="preview-wrap">
+    <div class="preview-label">Preview — first 5 rows</div>
+    <div class="preview-scroll">
+      <table class="preview-table" id="previewTable"></table>
+    </div>
+  </div>
+</div>
+
+</div>
+<footer>Built for <span>Be10X</span> &middot; Certificate Generator &middot; All processing happens in your browser</footer>
 
 <script>
-// ── CONFIG: column templates for each session ──────────────────────────────
-const TEMPLATES = {
+/* ── TEMPLATES ─────────────────────────────────────────────────────── */
+var T = {
   sunday_afternoon: {
-    columns: ['Name','CountryCode','Phone','AllowBroadcast','AllowSMS',
-              'certlink','notes','datetime','brname','faqdoc','bonus'],
-    constants: {
-      CountryCode: '91',
-      AllowBroadcast: ' True',
-      AllowSMS: ' True',
-      certlink: 'https://verify.certx.in/submit/9ede0ee0-a362-47a2-85a3-eba642519c44',
-      notes: 'https://link.be10x.in/AI-Tools-Workshop-Notes',
-      datetime: '22nd March',
-      brname: 'Be10X',
-      faqdoc: 'https://link.be10x.in/AI-Post-WS-FAQs',
-      bonus: 'special bonus worth\u00a0 Rs. 1799.'
+    cols: ['Name','CountryCode','Phone','AllowBroadcast','AllowSMS',
+           'certlink','notes','datetime','brname','faqdoc','bonus'],
+    k: {
+      CountryCode:    '91',
+      AllowBroadcast: 'TRUE',
+      AllowSMS:       'TRUE',
+      certlink:  'https://verify.certx.in/submit/9ede0ee0-a362-47a2-85a3-eba642519c44',
+      notes:     'https://link.be10x.in/AI-Tools-Workshop-Notes',
+      datetime:  '22nd March',
+      brname:    'Be10X',
+      faqdoc:    'https://link.be10x.in/AI-Post-WS-FAQs',
+      bonus:     'special bonus worth Rs. 1799.'
     }
   },
   sunday_evening: {
-    columns: ['Name','CountryCode','Phone','AllowBroadcast','AllowSMS',
-              'certlink','notes','message','bns','link'],
-    constants: {
-      CountryCode: '91',
-      AllowBroadcast: ' True',
-      AllowSMS: ' True',
-      certlink: 'https://verify.certx.in/submit/9ede0ee0-a362-47a2-85a3-eba642519c44',
-      notes: 'https://link.be10x.in/AI-Tools-Workshop-Notes',
-      message: "Today\u2019s Bonus Is LIVE!",
-      bns: 'special bonus worth\u00a0 Rs. 1799',
-      link: 'https://www.linkedin.com/company/be10x-in'
+    cols: ['Name','CountryCode','Phone','AllowBroadcast','AllowSMS',
+           'certlink','notes','message','bns','link'],
+    k: {
+      CountryCode:    '91',
+      AllowBroadcast: 'TRUE',
+      AllowSMS:       'TRUE',
+      certlink:  'https://verify.certx.in/submit/9ede0ee0-a362-47a2-85a3-eba642519c44',
+      notes:     'https://link.be10x.in/AI-Tools-Workshop-Notes',
+      message:   "Today's Bonus Is LIVE!",
+      bns:       'special bonus worth Rs. 1799',
+      link:      'https://www.linkedin.com/company/be10x-in'
     }
   },
   monday: {
-    columns: ['Name','CountryCode','Phone','AllowBroadcast','AllowSMS',
-              'certlink','wel','linkedinpage','message'],
-    constants: {
-      CountryCode: '91',
-      AllowBroadcast: 'True',
-      AllowSMS: 'True',
-      certlink: 'https://verify.certx.in/submit/9ede0ee0-a362-47a2-85a3-eba642519c44',
-      wel: "Don\u2019t Miss Out on Your Bonus worth 1799 rs.!",
+    cols: ['Name','CountryCode','Phone','AllowBroadcast','AllowSMS',
+           'certlink','wel','linkedinpage','message'],
+    k: {
+      CountryCode:    '91',
+      AllowBroadcast: 'TRUE',
+      AllowSMS:       'TRUE',
+      certlink:     'https://verify.certx.in/submit/9ede0ee0-a362-47a2-85a3-eba642519c44',
+      wel:          "Don't Miss Out on Your Bonus worth 1799 rs.!",
       linkedinpage: 'https://www.linkedin.com/company/be10x-in/',
-      message: 'Your special bonus will only be processed once we receive your DM.'
+      message:      'Your special bonus will only be processed once we receive your DM.'
     }
   },
   tuesday: {
-    columns: ['Name','CountryCode','Phone','AllowBroadcast','AllowSMS',
-              'brname','certlink','ylink','message','dmus'],
-    constants: {
-      CountryCode: '91',
-      AllowBroadcast: ' True',
-      AllowSMS: ' True',
-      brname: 'Be10X',
+    cols: ['Name','CountryCode','Phone','AllowBroadcast','AllowSMS',
+           'brname','certlink','ylink','message','dmus'],
+    k: {
+      CountryCode:    '91',
+      AllowBroadcast: 'TRUE',
+      AllowSMS:       'TRUE',
+      brname:   'Be10X',
       certlink: 'https://verify.certx.in/submit/9ede0ee0-a362-47a2-85a3-eba642519c44',
-      ylink: 'https://www.youtube.com/watch?v=1zS7-XgxAO0',
-      message: 'Now it\u2019s time to unlock your special bonus worth\u00a0 Rs. 1799.',
-      dmus: 'DM us the LinkedIn post link for verification. Once verified, your bonus will be processed.'
+      ylink:    'https://www.youtube.com/watch?v=1zS7-XgxAO0',
+      message:  "Now it's time to unlock your special bonus worth Rs. 1799.",
+      dmus:     'DM us the LinkedIn post link for verification. Once verified, your bonus will be processed.'
     }
   }
 };
 
-// ── STATE ──────────────────────────────────────────────────────────────────
-let parsedMain = null;
-let selectedDay = null;
-let generatedBlobs = [];
+/* ── STATE ─────────────────────────────────────────────────────────── */
+var mainData = null, chosenDay = null, blobs = [];
 
-// ── DOM REFS ───────────────────────────────────────────────────────────────
-const mainFileInput = document.getElementById('mainFileInput');
-const uploadZone    = document.getElementById('uploadZone');
-const fileName      = document.getElementById('fileName');
-const fileStats     = document.getElementById('fileStats');
-const uploadError   = document.getElementById('uploadError');
-const dayBtns       = document.querySelectorAll('.day-btn');
-const generateBtn   = document.getElementById('generateBtn');
-const statusBar     = document.getElementById('statusBar');
-const statusText    = document.getElementById('statusText');
-const resultsCard   = document.getElementById('resultsCard');
-const fileList      = document.getElementById('fileList');
-const dlAllBtn      = document.getElementById('dlAllBtn');
-const resultBadge   = document.getElementById('resultBadge');
-const sizeLimit     = document.getElementById('sizeLimit');
+/* ── ELEMENTS ──────────────────────────────────────────────────────── */
+function $(id){ return document.getElementById(id); }
+var fileInput   = $('fileInput'),
+    uploadZone  = $('uploadZone'),
+    uploadIcon  = $('uploadIcon'),
+    uploadChip  = $('uploadChip'),
+    chipName    = $('chipName'),
+    statsRow    = $('statsRow'),
+    uploadErr   = $('uploadErr'),
+    generateBtn = $('generateBtn'),
+    statusBar   = $('statusBar'),
+    statusText  = $('statusText'),
+    resultsCard = $('resultsCard'),
+    partsList   = $('partsList'),
+    dlAllBtn    = $('dlAllBtn'),
+    resultTag   = $('resultTag'),
+    previewTable= $('previewTable'),
+    sizeLimit   = $('sizeLimit');
 
-// ── UPLOAD ─────────────────────────────────────────────────────────────────
-uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
-uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
-uploadZone.addEventListener('drop', e => {
-  e.preventDefault();
-  uploadZone.classList.remove('drag-over');
-  const file = e.dataTransfer.files[0];
-  if (file) handleFile(file);
+/* ── UPLOAD ────────────────────────────────────────────────────────── */
+uploadZone.addEventListener('dragover', function(e){ e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', function(){ uploadZone.classList.remove('drag-over'); });
+uploadZone.addEventListener('drop', function(e){
+  e.preventDefault(); uploadZone.classList.remove('drag-over');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
 });
-
-mainFileInput.addEventListener('change', () => {
-  if (mainFileInput.files[0]) handleFile(mainFileInput.files[0]);
+fileInput.addEventListener('change', function(){
+  if (fileInput.files[0]) handleFile(fileInput.files[0]);
 });
 
 function handleFile(file) {
-  if (!file.name.endsWith('.csv')) {
-    showError(uploadError, 'Please upload a .csv file.');
-    return;
+  if (!file.name.toLowerCase().endsWith('.csv')) {
+    showErr(uploadErr, 'Please upload a .csv file.'); return;
   }
-  hideError(uploadError);
-
+  hideErr(uploadErr);
   Papa.parse(file, {
-    header: true,
-    skipEmptyLines: true,
-    complete: result => {
-      parsedMain = result.data;
-      fileName.textContent = '✓ ' + file.name;
-      fileName.classList.add('visible');
-
-      // Stats
-      const sizeMB = (file.size / 1024 / 1024).toFixed(3);
-      fileStats.innerHTML = `
-        <div class="stat-pill">Rows <span class="val">${parsedMain.length}</span></div>
-        <div class="stat-pill">Columns <span class="val">${result.meta.fields.length}</span></div>
-        <div class="stat-pill">Size <span class="val">${sizeMB} MB</span></div>
-      `;
+    header: true, skipEmptyLines: true,
+    complete: function(res) {
+      if (!res.data.length) { showErr(uploadErr, 'CSV is empty.'); return; }
+      mainData = res.data;
+      uploadZone.classList.add('has-file');
+      uploadIcon.textContent = '📄';
+      uploadChip.classList.add('show');
+      chipName.textContent = file.name;
+      var mb = (file.size / 1024 / 1024).toFixed(3);
+      statsRow.innerHTML =
+        '<div class="stat"><div class="stat-val">' + mainData.length.toLocaleString() + '</div><div class="stat-key">Rows</div></div>' +
+        '<div class="stat"><div class="stat-val">' + res.meta.fields.length + '</div><div class="stat-key">Columns</div></div>' +
+        '<div class="stat"><div class="stat-val">' + mb + ' MB</div><div class="stat-key">File Size</div></div>';
+      setStep(1,'done'); setStep(2,'active');
       checkReady();
     },
-    error: err => showError(uploadError, 'Failed to parse CSV: ' + err.message)
+    error: function(e){ showErr(uploadErr, 'Parse error: ' + e.message); }
   });
 }
 
-// ── DAY SELECTION ──────────────────────────────────────────────────────────
-dayBtns.forEach(btn => {
-  btn.addEventListener('click', () => {
-    dayBtns.forEach(b => b.classList.remove('selected'));
+/* ── SESSION ───────────────────────────────────────────────────────── */
+document.querySelectorAll('.session-btn').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    document.querySelectorAll('.session-btn').forEach(function(b){ b.classList.remove('selected'); });
     btn.classList.add('selected');
-    selectedDay = btn.dataset.day;
+    chosenDay = btn.dataset.day;
+    setStep(2,'done'); setStep(3,'active');
     checkReady();
   });
 });
 
-function checkReady() {
-  generateBtn.disabled = !(parsedMain && selectedDay);
+function checkReady(){ generateBtn.disabled = !(mainData && chosenDay); }
+
+/* ── GENERATE ──────────────────────────────────────────────────────── */
+generateBtn.addEventListener('click', generate);
+
+function generate() {
+  var tpl = T[chosenDay];
+  var maxBytes = parseFloat(sizeLimit.value) * 1024 * 1024;
+  if (isNaN(maxBytes) || maxBytes <= 0) { alert('Enter a valid size limit.'); return; }
+
+  statusBar.classList.add('show');
+  statusText.textContent = 'Building certificate rows…';
+  resultsCard.classList.remove('show');
+  blobs = [];
+
+  setTimeout(function(){
+    var rows = mainData.map(function(r){
+      var out = {};
+      tpl.cols.forEach(function(c){
+        if (c === 'Name')       out[c] = r['Name']  != null ? r['Name']  : '';
+        else if (c === 'Phone') out[c] = r['Phone'] != null ? r['Phone'] : '';
+        else                    out[c] = tpl.k[c]   != null ? tpl.k[c]   : '';
+      });
+      return out;
+    });
+
+    statusText.textContent = 'Splitting into parts…';
+    var parts = splitBySize(rows, tpl.cols, maxBytes);
+
+    statusText.textContent = 'Finalising…';
+    var labels = {
+      sunday_afternoon: 'Sunday_Afternoon',
+      sunday_evening:   'Sunday_Evening',
+      monday:           'Monday',
+      tuesday:          'Tuesday'
+    };
+    var dayLabel = labels[chosenDay];
+
+    parts.forEach(function(pRows, i){
+      var csv  = Papa.unparse({ fields: tpl.cols, data: pRows });
+      var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      var suffix = parts.length > 1 ? '_Part' + (i+1) : '';
+      blobs.push({ blob: blob, name: dayLabel + '_Certificate' + suffix + '.csv', rows: pRows.length, size: blob.size });
+    });
+
+    renderResults(rows, tpl.cols, maxBytes);
+  }, 60);
 }
 
-// ── GENERATE ───────────────────────────────────────────────────────────────
-generateBtn.addEventListener('click', generateCSVs);
-
-function generateCSVs() {
-  const tpl = TEMPLATES[selectedDay];
-  const maxBytes = parseFloat(sizeLimit.value) * 1024 * 1024;
-  if (isNaN(maxBytes) || maxBytes <= 0) { alert('Please enter a valid size limit.'); return; }
-
-  // Show status
-  statusBar.classList.add('visible');
-  statusText.textContent = 'Building rows…';
-  resultsCard.classList.remove('visible');
-  fileList.innerHTML = '';
-  generatedBlobs = [];
-
-  setTimeout(() => {
-    try {
-      // Build output rows
-      const rows = parsedMain.map(row => {
-        const out = {};
-        tpl.columns.forEach(col => {
-          if (col === 'Name')  out[col] = row['Name'] ?? '';
-          else if (col === 'Phone') out[col] = row['Phone'] ?? '';
-          else out[col] = tpl.constants[col] ?? '';
-        });
-        return out;
-      });
-
-      statusText.textContent = 'Splitting into parts…';
-
-      // Split by size
-      const parts = splitBySize(rows, tpl.columns, maxBytes);
-
-      statusText.textContent = 'Preparing downloads…';
-
-      const dayLabel = selectedDay.replace('_', '-');
-      parts.forEach((partRows, i) => {
-        const csvStr = Papa.unparse({ fields: tpl.columns, data: partRows });
-        const blob = new Blob([csvStr], { type: 'text/csv;charset=utf-8;' });
-        const suffix = parts.length > 1 ? `_Part${i+1}` : '';
-        const fname = `${dayLabel}_Certificate${suffix}.csv`;
-        generatedBlobs.push({ blob, fname, rows: partRows.length, size: blob.size });
-      });
-
-      renderResults();
-    } catch(e) {
-      statusText.textContent = 'Error: ' + e.message;
-    }
-  }, 50);
-}
-
-function splitBySize(rows, columns, maxBytes) {
-  const parts = [];
-  let current = [];
-  let currentSize = 0;
-
-  // Estimate header size
-  const headerSize = columns.join(',').length + 1;
-
-  rows.forEach(row => {
-    const line = columns.map(c => escapeCSV(row[c])).join(',') + '\n';
-    const lineBytes = new Blob([line]).size;
-
-    if (current.length > 0 && currentSize + lineBytes + headerSize > maxBytes) {
-      parts.push(current);
-      current = [];
-      currentSize = headerSize;
-    }
-    current.push(row);
-    currentSize += lineBytes;
+function splitBySize(rows, cols, maxBytes) {
+  var parts = [], cur = [], sz = cols.join(',').length + 1;
+  rows.forEach(function(row){
+    var line = cols.map(function(c){ return esc(row[c]); }).join(',') + '\n';
+    var lb   = new Blob([line]).size;
+    if (cur.length && sz + lb > maxBytes) { parts.push(cur); cur = []; sz = cols.join(',').length + 1; }
+    cur.push(row); sz += lb;
   });
-
-  if (current.length > 0) parts.push(current);
+  if (cur.length) parts.push(cur);
   return parts;
 }
 
-function escapeCSV(val) {
-  if (val === null || val === undefined) return '';
-  const s = String(val);
-  if (s.includes(',') || s.includes('"') || s.includes('\n')) {
-    return '"' + s.replace(/"/g, '""') + '"';
-  }
-  return s;
+function esc(v) {
+  if (v == null) return '';
+  var s = String(v);
+  return (s.indexOf(',') >= 0 || s.indexOf('"') >= 0 || s.indexOf('\n') >= 0)
+    ? '"' + s.replace(/"/g, '""') + '"' : s;
 }
 
-function renderResults() {
-  statusBar.classList.remove('visible');
-  resultsCard.classList.add('visible');
-  resultBadge.textContent = `✓ ${generatedBlobs.length} file${generatedBlobs.length>1?'s':''} ready`;
+function renderResults(allRows, cols, maxBytes) {
+  statusBar.classList.remove('show');
+  resultsCard.classList.add('show');
+  resultTag.textContent = '\u2713 ' + blobs.length + ' file' + (blobs.length > 1 ? 's' : '') + ' ready';
 
-  fileList.innerHTML = '';
-  generatedBlobs.forEach(({ blob, fname, rows, size }) => {
-    const url = URL.createObjectURL(blob);
-    const sizeMB = (size / 1024 / 1024).toFixed(3);
-    const div = document.createElement('div');
-    div.className = 'file-item';
-    div.innerHTML = `
-      <div class="file-item-info">
-        <div class="file-item-name">📄 ${fname}</div>
-        <div class="file-item-meta">${rows.toLocaleString()} rows · ${sizeMB} MB</div>
-      </div>
-      <a class="dl-btn" href="${url}" download="${fname}">Download</a>
-    `;
-    fileList.appendChild(div);
+  partsList.innerHTML = '';
+  blobs.forEach(function(b){
+    var url  = URL.createObjectURL(b.blob);
+    var mb   = (b.size / 1024 / 1024).toFixed(3);
+    var pct  = Math.min(100, (b.size / maxBytes) * 100).toFixed(1);
+    var div  = document.createElement('div');
+    div.className = 'part-item';
+    div.innerHTML =
+      '<div class="part-info">' +
+        '<div class="part-name">&#128196; ' + b.name + '</div>' +
+        '<div class="part-meta">' + b.rows.toLocaleString() + ' rows &middot; ' + mb + ' MB' +
+          '<div class="part-bar"><div class="part-bar-fill" style="width:' + pct + '%"></div></div>' +
+        '</div>' +
+      '</div>' +
+      '<a class="dl-btn" href="' + url + '" download="' + b.name + '">Download</a>';
+    partsList.appendChild(div);
   });
 
-  if (generatedBlobs.length < 2) {
-    dlAllBtn.style.display = 'none';
-  } else {
-    dlAllBtn.style.display = 'block';
-  }
+  dlAllBtn.style.display = blobs.length > 1 ? 'block' : 'none';
+
+  // Preview
+  var preview = allRows.slice(0, 5);
+  var html = '<thead><tr>' + cols.map(function(c){ return '<th>' + c + '</th>'; }).join('') + '</tr></thead><tbody>';
+  preview.forEach(function(r){
+    html += '<tr>' + cols.map(function(c){
+      var v = r[c] || '';
+      var short = v.length > 26 ? v.slice(0,23) + '…' : v;
+      return '<td title="' + v.replace(/"/g,'&quot;') + '">' + short + '</td>';
+    }).join('') + '</tr>';
+  });
+  html += '</tbody>';
+  previewTable.innerHTML = html;
 }
 
-dlAllBtn.addEventListener('click', () => {
-  generatedBlobs.forEach(({ blob, fname }, i) => {
-    setTimeout(() => {
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = fname;
-      a.click();
-    }, i * 300);
+dlAllBtn.addEventListener('click', function(){
+  blobs.forEach(function(b, i){
+    setTimeout(function(){
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(b.blob); a.download = b.name; a.click();
+    }, i * 350);
   });
 });
 
-// ── UTILS ──────────────────────────────────────────────────────────────────
-function showError(el, msg) { el.textContent = msg; el.classList.add('visible'); }
-function hideError(el) { el.classList.remove('visible'); }
+/* ── PROGRESS ──────────────────────────────────────────────────────── */
+function setStep(n, state) {
+  var el = $('s' + n);
+  el.classList.remove('active','done');
+  if (state) el.classList.add(state);
+  if (n > 1) {
+    var line = $('l' + (n-1));
+    if (state) line.classList.add('done');
+    else line.classList.remove('done');
+  }
+}
+
+/* ── UTILS ─────────────────────────────────────────────────────────── */
+function showErr(el, msg){ el.textContent = '\u26a0 ' + msg; el.classList.add('show'); }
+function hideErr(el){ el.classList.remove('show'); }
 </script>
 </body>
 </html>
