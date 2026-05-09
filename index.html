@@ -520,7 +520,7 @@ function generate() {
     var dupesRemoved = totalBefore - rows.length;
 
     statusText.textContent = 'Splitting into parts…';
-    var parts = splitBySize(rows, tpl.cols, maxBytes);
+    var parts = [];
 
     statusText.textContent = 'Finalising…';
     var labels = {
@@ -531,28 +531,18 @@ function generate() {
     };
     var dayLabel = labels[chosenDay];
 
-    // Row 2 of the main file (mainData index 1) is the org/verification row
-    // Build it through the same template mapping so columns match exactly
-    var orgRow = null;
-    if (mainData[1]) {
-      var r2 = mainData[1];
-      orgRow = {};
-      tpl.cols.forEach(function(c){
-        if (c === 'Name')       orgRow[c] = tpl.nameBlank ? '' : (r2['Name']  != null ? r2['Name']  : '');
-        else if (c === 'Phone') orgRow[c] = r2['Phone'] != null ? r2['Phone'] : '';
-        else                    orgRow[c] = tpl.k[c]   != null ? tpl.k[c]   : '';
-      });
-    }
+    // rows[1] is the org/verification row (row 2 of main file), already mapped through template
+    var orgRow = rows.length > 1 ? rows[1] : null;
+
+    // Remove the org row from the pool before splitting so it doesn't get counted twice
+    var splitRows = rows.filter(function(r, idx){ return idx !== 1; });
+    parts = splitBySize(splitRows, tpl.cols, maxBytes);
 
     parts.forEach(function(pRows, i){
       var finalRows;
       if (orgRow) {
-        // Always place org row at position 2 (index 1) in every part
-        // Remove it from wherever it naturally landed in this chunk first
-        var orgPhone = String(orgRow['Phone']).trim();
-        var withoutOrg = pRows.filter(function(r){ return String(r['Phone']).trim() !== orgPhone; });
-        // First row stays as row 1, org row forced to row 2, rest follow
-        finalRows = [withoutOrg[0], orgRow].concat(withoutOrg.slice(1));
+        // Always pin org row at position 2 (index 1) in every part
+        finalRows = [pRows[0], orgRow].concat(pRows.slice(1));
       } else {
         finalRows = pRows;
       }
