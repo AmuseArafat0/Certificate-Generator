@@ -531,18 +531,21 @@ function generate() {
     };
     var dayLabel = labels[chosenDay];
 
-    // rows[1] is the org/verification row (row 2 of main file), already mapped through template
-    var orgRow = rows.length > 1 ? rows[1] : null;
+    // rows[1] and rows[2] are the fixed org rows (row 2 & 3 of main file)
+    var fixedRows = [];
+    if (rows.length > 1) fixedRows.push(rows[1]);
+    if (rows.length > 2) fixedRows.push(rows[2]);
+    var fixedPhones = fixedRows.map(function(r){ return String(r['Phone']).trim(); });
 
-    // Remove the org row from the pool before splitting so it doesn't get counted twice
-    var splitRows = rows.filter(function(r, idx){ return idx !== 1; });
+    // Remove fixed rows from the pool before splitting
+    var splitRows = rows.filter(function(r, idx){ return idx !== 1 && idx !== 2; });
     parts = splitBySize(splitRows, tpl.cols, maxBytes);
 
     parts.forEach(function(pRows, i){
       var finalRows;
-      if (orgRow) {
-        // Always pin org row at position 2 (index 1) in every part
-        finalRows = [pRows[0], orgRow].concat(pRows.slice(1));
+      if (fixedRows.length) {
+        // Pin fixed rows at row 2 & 3 in every part, first row stays as row 1
+        finalRows = [pRows[0]].concat(fixedRows).concat(pRows.slice(1));
       } else {
         finalRows = pRows;
       }
