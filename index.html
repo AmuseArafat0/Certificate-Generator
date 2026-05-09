@@ -545,10 +545,16 @@ function generate() {
     }
 
     parts.forEach(function(pRows, i){
-      var finalRows = pRows;
-      // Insert the fixed org row at position 2 (index 1) in every part after the first
-      if (i > 0 && orgRow) {
-        finalRows = [pRows[0], orgRow].concat(pRows.slice(1));
+      var finalRows;
+      if (orgRow) {
+        // Always place org row at position 2 (index 1) in every part
+        // Remove it from wherever it naturally landed in this chunk first
+        var orgPhone = String(orgRow['Phone']).trim();
+        var withoutOrg = pRows.filter(function(r){ return String(r['Phone']).trim() !== orgPhone; });
+        // First row stays as row 1, org row forced to row 2, rest follow
+        finalRows = [withoutOrg[0], orgRow].concat(withoutOrg.slice(1));
+      } else {
+        finalRows = pRows;
       }
       var csv  = Papa.unparse({ fields: tpl.cols, data: finalRows });
       var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
