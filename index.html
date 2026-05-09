@@ -385,11 +385,11 @@ var T = {
       AllowBroadcast: 'TRUE',
       AllowSMS:       'TRUE',
       certlink:  'https://verify.certx.in/submit/9ede0ee0-a362-47a2-85a3-eba642519c44',
-      notes:     'https://link.be10x.in/AI-Tools-Workshop-Notes',
-      datetime:  '22nd March',
+      notes:     'https://link.be10x.in/Notes-AI-Tools-Workshop',
+      datetime:  '3rd May',
       brname:    'Be10X',
-      faqdoc:    'https://link.be10x.in/AI-Post-WS-FAQs',
-      bonus:     'special bonus worth Rs. 1799.'
+      faqdoc:    'https://link.be10x.in/AI-Tools-Workshop-Post-WS-FAQs',
+      bonus:     'special bonus worth\u00a0 Rs. 1799.'
     }
   },
   sunday_evening: {
@@ -402,9 +402,10 @@ var T = {
       certlink:  'https://verify.certx.in/submit/9ede0ee0-a362-47a2-85a3-eba642519c44',
       notes:     'https://link.be10x.in/AI-Tools-Workshop-Notes',
       message:   "Today's Bonus Is LIVE!",
-      bns:       'special bonus worth Rs. 1799',
+      bns:       'special bonus worth\u00a0 Rs. 1799',
       link:      'https://www.linkedin.com/company/be10x-in'
-    }
+    },
+    nameBlank: true
   },
   monday: {
     cols: ['Name','CountryCode','Phone','AllowBroadcast','AllowSMS',
@@ -414,7 +415,7 @@ var T = {
       AllowBroadcast: 'TRUE',
       AllowSMS:       'TRUE',
       certlink:     'https://verify.certx.in/submit/9ede0ee0-a362-47a2-85a3-eba642519c44',
-      wel:          "Don't Miss Out on Your Bonus worth 1799 rs.!",
+      wel:          "Don\u2019t Miss Out on Your Bonus worth 1799 rs.!",
       linkedinpage: 'https://www.linkedin.com/company/be10x-in/',
       message:      'Your special bonus will only be processed once we receive your DM.'
     }
@@ -429,7 +430,7 @@ var T = {
       brname:   'Be10X',
       certlink: 'https://verify.certx.in/submit/9ede0ee0-a362-47a2-85a3-eba642519c44',
       ylink:    'https://www.youtube.com/watch?v=1zS7-XgxAO0',
-      message:  "Now it's time to unlock your special bonus worth Rs. 1799.",
+      message:  "Now it's time to unlock your special bonus worth\u00a0 Rs. 1799.",
       dmus:     'DM us the LinkedIn post link for verification. Once verified, your bonus will be processed.'
     }
   }
@@ -524,7 +525,7 @@ function generate() {
     var rows = mainData.map(function(r){
       var out = {};
       tpl.cols.forEach(function(c){
-        if (c === 'Name')       out[c] = r['Name']  != null ? r['Name']  : '';
+        if (c === 'Name')       out[c] = tpl.nameBlank ? '' : (r['Name']  != null ? r['Name']  : '');
         else if (c === 'Phone') out[c] = r['Phone'] != null ? r['Phone'] : '';
         else                    out[c] = tpl.k[c]   != null ? tpl.k[c]   : '';
       });
@@ -555,14 +556,38 @@ function generate() {
 }
 
 function splitBySize(rows, cols, maxBytes) {
-  var parts = [], cur = [], sz = cols.join(',').length + 1;
-  rows.forEach(function(row){
-    var line = cols.map(function(c){ return esc(row[c]); }).join(',') + '\n';
-    var lb   = new Blob([line]).size;
-    if (cur.length && sz + lb > maxBytes) { parts.push(cur); cur = []; sz = cols.join(',').length + 1; }
-    cur.push(row); sz += lb;
+  if (!rows.length) return [];
+
+  var headerBytes = new Blob([cols.join(',') + '\n']).size;
+
+  // Pre-compute every row's byte size
+  var rowSizes = rows.map(function(row) {
+    var line = cols.map(function(c) { return esc(row[c]); }).join(',') + '\n';
+    return new Blob([line]).size;
   });
-  if (cur.length) parts.push(cur);
+  var totalBytes = headerBytes + rowSizes.reduce(function(a, b) { return a + b; }, 0);
+
+  // Minimum parts needed so each part can fit under maxBytes
+  var numParts = Math.max(1, Math.ceil(totalBytes / maxBytes));
+
+  // Aim for equal rows per part; shrink if any chunk still exceeds the limit
+  var rowsPerPart = Math.ceil(rows.length / numParts);
+  var safe = false;
+  while (!safe && rowsPerPart >= 1) {
+    safe = true;
+    for (var s = 0; s < rows.length; s += rowsPerPart) {
+      var slice = rowSizes.slice(s, s + rowsPerPart);
+      var chunkBytes = headerBytes + slice.reduce(function(a, b) { return a + b; }, 0);
+      if (chunkBytes > maxBytes) { safe = false; break; }
+    }
+    if (!safe) rowsPerPart--;
+  }
+  if (rowsPerPart < 1) rowsPerPart = 1;
+
+  var parts = [];
+  for (var i = 0; i < rows.length; i += rowsPerPart) {
+    parts.push(rows.slice(i, i + rowsPerPart));
+  }
   return parts;
 }
 
