@@ -436,7 +436,7 @@ var T = {
       AllowBroadcast: 'TRUE',
       AllowSMS:       'TRUE',
       certlink:  'https://verify.certx.in/submit/9ede0ee0-a362-47a2-85a3-eba642519c44',
-      notes:     'https://link.be10x.in/AI-Tools-Workshop-Notes',
+      notes:     'https://link.be10x.in/Notes-AI-Tools-Workshop',
       message:   "Today's Bonus Is LIVE!",
       bns:       'special bonus worth Rs. 1799',
       link:      'https://www.linkedin.com/company/be10x-in'
@@ -576,9 +576,15 @@ function generate() {
     var rows = mainData.map(function(r){
       var out = {};
       tpl.cols.forEach(function(c){
-        if (c === 'Name')       out[c] = tpl.nameBlank ? '' : (r['Name']  != null ? r['Name']  : '');
-        else if (c === 'Phone') out[c] = r['Phone'] != null ? r['Phone'] : '';
-        else                    out[c] = tpl.k[c]   != null ? tpl.k[c]   : '';
+        if (c === 'Name') {
+          out[c] = tpl.nameBlank ? '' : (r['Name'] != null ? r['Name'] : '');
+        } else if (r[c] != null && String(r[c]).trim() !== '') {
+          // Always prefer value from the uploaded CSV file
+          out[c] = r[c];
+        } else {
+          // Fall back to template default only if CSV has no value for this column
+          out[c] = tpl.k[c] != null ? tpl.k[c] : '';
+        }
       });
       return out;
     });
@@ -620,13 +626,20 @@ function generate() {
     var orgPhones = ['8777595927', '6289572538'];
     var fixedRows = orgPhones.map(function(phone) {
       var row = {};
+      // For org/fixed rows, find the matching row from mainData if it exists
+      var mainRow = mainData.filter(function(mr){ return String(mr['Phone']).trim() === phone; })[0] || {};
       tpl.cols.forEach(function(c) {
-        if (c === 'Name')       row[c] = tpl.nameBlank ? '' : 'there';
-        else if (c === 'Phone') row[c] = phone;
-        else if (c === 'CountryCode') row[c] = '91';
-        else if (c === 'AllowBroadcast') row[c] = 'TRUE';
-        else if (c === 'AllowSMS') row[c] = 'TRUE';
-        else                    row[c] = tpl.k[c] != null ? tpl.k[c] : '';
+        if (c === 'Name') {
+          row[c] = tpl.nameBlank ? '' : (mainRow['Name'] != null ? mainRow['Name'] : 'there');
+        } else if (c === 'Phone') {
+          row[c] = phone;
+        } else if (mainRow[c] != null && String(mainRow[c]).trim() !== '') {
+          // Use value from the CSV if available
+          row[c] = mainRow[c];
+        } else {
+          // Fall back to template default
+          row[c] = tpl.k[c] != null ? tpl.k[c] : '';
+        }
       });
       return row;
     });
