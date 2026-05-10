@@ -608,8 +608,8 @@ function generate() {
     var now = new Date();
     var day = now.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
     var lastSunday = new Date(now);
-    // Always go back to the PREVIOUS Sunday (never today even if today is Sunday)
-    var daysBack = day === 0 ? 7 : day;
+    // Use today if today is Sunday, otherwise go back to last Sunday
+    var daysBack = day === 0 ? 0 : day;
     lastSunday.setDate(now.getDate() - daysBack);
     var dd   = String(lastSunday.getDate()).padStart(2, '0');
     var mm   = String(lastSunday.getMonth() + 1).padStart(2, '0');
