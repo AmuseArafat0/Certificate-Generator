@@ -563,8 +563,21 @@ function checkReady(){ generateBtn.disabled = !(mainData && chosenDay); }
 generateBtn.addEventListener('click', generate);
 
 function generate() {
-  var tpl = T[chosenDay];
+  // Deep-clone the template so we never mutate the original T object
+  var tpl = JSON.parse(JSON.stringify(T[chosenDay]));
   var maxBytes = 2 * 1024 * 1024;
+
+  // If the uploaded CSV has a certlink column, read the first non-empty value
+  // and use it as the fallback default — overriding the hardcoded template link.
+  if (tpl.cols.indexOf('certlink') !== -1) {
+    for (var i = 0; i < mainData.length; i++) {
+      var v = mainData[i]['certlink'];
+      if (v != null && String(v).trim() !== '') {
+        tpl.k['certlink'] = String(v).trim();
+        break;
+      }
+    }
+  }
 
   statusBar.classList.add('show');
   statusText.textContent = 'Building certificate rows…';
