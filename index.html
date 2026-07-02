@@ -376,7 +376,7 @@ footer span{color:var(--gold);text-shadow:0 0 8px rgba(247,217,122,.4);}
       <div class="session-check"></div>
       <div class="session-icon">🗓️</div>
       <div class="session-name">Thursday</div>
-      <div class="session-cols">certlink · wel<br>linkedinpage · message · bns</div>
+      <div class="session-cols">certlink · bns · brname</div>
     </button>
 
   </div>
@@ -472,18 +472,16 @@ var T = {
   },
   thursday: {
     cols: ['Name','CountryCode','Phone','AllowBroadcast','AllowSMS',
-           'certlink','wel','linkedinpage','message','bns','brname'],
+           'certlink','bns','brname'],
     k: {
       CountryCode:    '91',
       AllowBroadcast: 'TRUE',
       AllowSMS:       'TRUE',
       certlink:     'https://verify.certx.in/submit/9ede0ee0-a362-47a2-85a3-eba642519c44',
-      wel:          "Do not Miss Out on Your Bonus worth 1799 rs.!",
-      linkedinpage: 'https://www.linkedin.com/company/be10x-in/',
-      message:      'Your special bonus will only be processed once we receive your DM.',
       bns:          'special bonus worth Rs. 1799',
       brname:       'Be10X'
-    }
+    },
+    nameDefault: 'there'
   }
 };
 
@@ -590,7 +588,7 @@ function generate() {
       var out = {};
       tpl.cols.forEach(function(c){
         if (c === 'Name') {
-          out[c] = tpl.nameBlank ? '' : (r['Name'] != null ? r['Name'] : '');
+          out[c] = tpl.nameBlank ? '' : (r['Name'] != null && String(r['Name']).trim() !== '' ? r['Name'] : (tpl.nameDefault != null ? tpl.nameDefault : ''));
         } else if (r[c] != null && String(r[c]).trim() !== '') {
           // Always prefer value from the uploaded CSV file
           out[c] = r[c];
@@ -643,7 +641,7 @@ function generate() {
       var mainRow = mainData.filter(function(mr){ return String(mr['Phone']).trim() === phone; })[0] || {};
       tpl.cols.forEach(function(c) {
         if (c === 'Name') {
-          row[c] = tpl.nameBlank ? '' : (mainRow['Name'] != null ? mainRow['Name'] : 'there');
+          row[c] = tpl.nameBlank ? '' : (mainRow['Name'] != null && String(mainRow['Name']).trim() !== '' ? mainRow['Name'] : (tpl.nameDefault != null ? tpl.nameDefault : 'there'));
         } else if (c === 'Phone') {
           row[c] = phone;
         } else if (mainRow[c] != null && String(mainRow[c]).trim() !== '') {
