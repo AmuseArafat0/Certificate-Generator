@@ -51,6 +51,7 @@ body {
   position:fixed;border-radius:50%;pointer-events:none;z-index:0;
   background:radial-gradient(circle,#b8f5d0 0%,rgba(184,245,208,0) 70%);
   animation:flypath var(--dur,8s) var(--delay,0s) ease-in-out infinite alternate;
+  will-change:transform,opacity;
 }
 @keyframes flypath{
   0%  {transform:translate(0,0) scale(1);opacity:.7;}
@@ -65,6 +66,7 @@ body {
   position:fixed;pointer-events:none;z-index:0;font-size:var(--lsz,16px);
   opacity:.18;
   animation:leaffall var(--ld,14s) var(--ldel,0s) linear infinite;
+  will-change:transform,opacity;
 }
 @keyframes leaffall{
   0%  {transform:translateY(-40px) translateX(0) rotate(0deg);opacity:0;}
@@ -298,9 +300,30 @@ h1 em{font-style:normal;background:var(--gold-g);-webkit-background-clip:text;-w
 
 footer{text-align:center;margin-top:70px;font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.8px;}
 footer span{color:var(--gold);text-shadow:0 0 8px rgba(247,217,122,.4);}
+
+/* ── PERF: pause perpetual decorative animations while the tab is hidden (no visual change
+   while you're looking — this only stops burning CPU/GPU while backgrounded) ── */
+html.hz-paused .firefly,
+html.hz-paused .leaf,
+html.hz-paused .card-title::before{
+  animation-play-state:paused!important;
+}
+@media (prefers-reduced-motion: reduce){
+  .firefly,.leaf,.card-title::before{animation:none!important;}
+}
 </style>
 </head>
 <body>
+<script>
+// Toggle a class on <html> the instant this tab is hidden/shown, so the perpetual decorative
+// CSS animations (fireflies, falling leaves, card twinkle) pause while nobody's looking. The
+// starfield canvas animation pauses itself the same way — see its own script below.
+(function(){
+  function apply(){document.documentElement.classList.toggle('hz-paused',document.hidden);}
+  document.addEventListener('visibilitychange',apply);
+  apply();
+})();
+</script>
 <canvas id="starfield"></canvas>
 
 <div class="bg-glow"></div>
@@ -805,6 +828,24 @@ function hideErr(el){ el.classList.remove('show'); }
   function resize(){ c.width=innerWidth; c.height=innerHeight; }
   resize();
   window.addEventListener('resize', resize);
+
+  // Pre-render each star color once into a tiny sprite; per-frame drawing then becomes a
+  // cheap drawImage() scaled to the star's radius instead of arc()+fill() 160 times a frame.
+  var STAR_COLORS = ['#f7d97a', '#b8f5d0', '#ffffff'];
+  var STAR_REF = 2, STAR_SPR = 8;
+  var starSprites = {};
+  STAR_COLORS.forEach(function(color){
+    var s = document.createElement('canvas');
+    s.width = STAR_SPR; s.height = STAR_SPR;
+    var sctx = s.getContext('2d');
+    sctx.translate(STAR_SPR/2, STAR_SPR/2);
+    sctx.fillStyle = color;
+    sctx.beginPath();
+    sctx.arc(0,0,STAR_REF,0,Math.PI*2);
+    sctx.fill();
+    starSprites[color] = s;
+  });
+
   for(var i=0;i<160;i++){
     stars.push({
       x:Math.random()*innerWidth, y:Math.random()*innerHeight,
@@ -813,21 +854,28 @@ function hideErr(el){ el.classList.remove('show'); }
       color: Math.random()<.3 ? '#f7d97a' : (Math.random()<.5?'#b8f5d0':'#ffffff')
     });
   }
-  function draw(){
+
+  var FRAME_MS = 1000/30, REF_MS = 1000/60, lastT = 0;
+  function draw(t){
+    requestAnimationFrame(draw);
+    if(document.hidden) return;
+    if(lastT===0){ lastT=t; return; }
+    var elapsed = t-lastT;
+    if(elapsed<FRAME_MS) return;
+    var dt = Math.min(elapsed, FRAME_MS*3)/REF_MS;
+    lastT = t;
+
     ctx.clearRect(0,0,c.width,c.height);
     stars.forEach(function(s){
-      s.a += s.da;
+      s.a += s.da*dt;
       if(s.a>1||s.a<0) s.da*=-1;
-      ctx.beginPath();
-      ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
-      ctx.fillStyle = s.color;
-      ctx.globalAlpha = s.a*.85;
-      ctx.fill();
+      ctx.globalAlpha = Math.max(0,s.a)*.85;
+      var d = (s.r/STAR_REF)*STAR_SPR;
+      ctx.drawImage(starSprites[s.color], s.x-d/2, s.y-d/2, d, d);
     });
     ctx.globalAlpha=1;
-    requestAnimationFrame(draw);
   }
-  draw();
+  requestAnimationFrame(draw);
 })();
 
 /* ── FIREFLIES ─────────────────────────────────────────────────────── */
