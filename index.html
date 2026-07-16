@@ -580,6 +580,119 @@ document.querySelectorAll('.session-btn').forEach(function(btn){
 
 function checkReady(){ generateBtn.disabled = !(mainData && chosenDay); }
 
+/* ── PHONE NORMALISATION ────────────────────────────────────────────
+   Cleans the Phone column so every row ends up as a valid mobile number
+   with the correct calling code broken out into CountryCode:
+
+     • India numbers          → CountryCode "91", Phone = RIGHT(digits, 10)
+     • Worldwide numbers       → calling code detected, national no. in Phone
+     • Invalid / junk numbers  → dropped (valid:false)
+
+   Detection works off the Phone field itself (its own +code prefix is the
+   reliable signal). A bare number of 10 digits or fewer with no recognisable
+   foreign code is treated as India-only: valid iff it is a real 10-digit
+   mobile (starts 6-9), otherwise it is considered invalid rather than
+   guessed as a foreign number. */
+
+// ITU-T E.164 country calling codes (longest-prefix match, 1–3 digits).
+var COUNTRY_CODES = {};
+['1','7','20','27','30','31','32','33','34','36','39','40','41','43','44','45',
+ '46','47','48','49','51','52','53','54','55','56','57','58','60','61','62','63',
+ '64','65','66','81','82','84','86','90','91','92','93','94','95','98',
+ '211','212','213','216','218','220','221','222','223','224','225','226','227',
+ '228','229','230','231','232','233','234','235','236','237','238','239','240',
+ '241','242','243','244','245','246','248','249','250','251','252','253','254',
+ '255','256','257','258','260','261','262','263','264','265','266','267','268',
+ '269','290','291','297','298','299','350','351','352','353','354','355','356',
+ '357','358','359','370','371','372','373','374','375','376','377','378','380',
+ '381','382','383','385','386','387','389','420','421','423','500','501','502',
+ '503','504','505','506','507','508','509','590','591','592','593','594','595',
+ '596','597','598','599','670','672','673','674','675','676','677','678','679',
+ '680','681','682','683','685','686','687','688','689','690','691','692','850',
+ '852','853','855','856','880','886','960','961','962','963','964','965','966',
+ '967','968','970','971','972','973','974','975','976','977','992','993','994',
+ '995','996','998'].forEach(function(c){ COUNTRY_CODES[c] = true; });
+
+// Only these can sit in FRONT of a genuine 10-digit India mobile.
+var INDIA_WRAPPERS = { '': 1, '0': 1, '91': 1, '091': 1, '0091': 1 };
+
+function isIndiaMobile(s) { return /^[6-9]\d{9}$/.test(s); }
+
+// Read a digit string as "<calling code><national number>", longest code first.
+function detectByPrefix(digits) {
+  for (var len = 3; len >= 1; len--) {
+    var code = digits.slice(0, len);
+    if (!COUNTRY_CODES[code]) continue;
+    var national = digits.slice(len);
+    if (code === '91') {                               // 91 → India rules only
+      if (isIndiaMobile(national))
+        return { valid: true, type: 'india', cc: '91', phone: national };
+      continue;
+    }
+    if (national.length >= 4 && national.length <= 12)
+      return { valid: true, type: 'intl', cc: code, phone: national };
+  }
+  return null;
+}
+
+// Fallback for a number we can't confidently classify but which is long enough
+// to plausibly be real — keep it rather than guess it away. Uses the CSV's own
+// CountryCode when it is a real foreign code, otherwise defaults to India (91).
+function keepAsIs(pd, cdCol) {
+  var cc = (cdCol && cdCol !== '91' && COUNTRY_CODES[cdCol]) ? cdCol : '91';
+  return { valid: true, type: 'unknown', cc: cc, phone: pd };
+}
+
+function normalizePhone(phoneRaw, ccRaw) {
+  var cdCol = ccRaw == null ? '' : String(ccRaw).replace(/\D/g, '');
+  if (phoneRaw == null) return { valid: false };
+  var raw = String(phoneRaw).trim();
+  var pd  = raw.replace(/\D/g, '');                    // strip to digits only
+
+  // A leading "+" or intl access "00" is the writer's explicit signal that a
+  // country code sits up front — this is what tells "+6591234567" (Singapore)
+  // apart from a bare India mobile that happens to start with 6.
+  var explicitIntl = raw.charAt(0) === '+';
+  if (pd.slice(0, 2) === '00') { pd = pd.slice(2); explicitIntl = true; }
+
+  // ── 100%-sure-invalid: only truly un-dial-able junk is dropped. ──
+  // Nothing on earth is a phone number with fewer than 4 digits (blanks, "0",
+  // "N/A", stray digits). Anything with 4+ digits is KEPT — normalised if we
+  // recognise it, passed through untouched if we don't.
+  if (pd.length < 4) return { valid: false };
+
+  // ── Explicit international form → split off the country code ──────
+  if (explicitIntl) {
+    var d = detectByPrefix(pd);
+    if (d) return d;
+    if (isIndiaMobile(pd)) return { valid: true, type: 'india', cc: '91', phone: pd };
+    return keepAsIs(pd, cdCol);
+  }
+
+  // ── India-first (no "+"): last 10 digits are a real India mobile AND
+  //    whatever sits in front is only an India wrapper (nothing/0/91/091). ──
+  var tail10 = pd.slice(-10);                          // =RIGHT(digits, 10)
+  var lead   = pd.slice(0, pd.length - 10);
+  if (isIndiaMobile(tail10) && INDIA_WRAPPERS[lead] === 1) {
+    return { valid: true, type: 'india', cc: '91', phone: tail10 };
+  }
+
+  // Country code pasted without "+", e.g. "14155551234" / "923001234567".
+  if (pd.length > 10) {
+    var d2 = detectByPrefix(pd);
+    if (d2) return d2;
+    return keepAsIs(pd, cdCol);
+  }
+
+  // Bare national number + an explicit foreign CountryCode column.
+  if (cdCol && cdCol !== '91' && COUNTRY_CODES[cdCol] && pd.length >= 4 && pd.length <= 12) {
+    return { valid: true, type: 'intl', cc: cdCol, phone: pd };
+  }
+
+  // ≤10 digits, doesn't match India or a foreign code — keep it as-is.
+  return keepAsIs(pd, cdCol);
+}
+
 /* ── GENERATE ──────────────────────────────────────────────────────── */
 generateBtn.addEventListener('click', generate);
 
@@ -623,16 +736,28 @@ function generate() {
       return out;
     });
 
-    // Remove duplicate rows based on Phone number
-    var totalBefore = rows.length;
-    var seenPhones = {};
-    rows = rows.filter(function(r) {
-      var phone = String(r['Phone']).trim();
-      if (seenPhones[phone]) return false;
-      seenPhones[phone] = true;
-      return true;
+    // ── CLEAN PHONE NUMBERS: normalise → drop invalid → de-duplicate ──
+    //  India  → CountryCode "91", Phone = RIGHT(digits,10)
+    //  Abroad → calling code detected into CountryCode, national no. in Phone
+    //  Invalid rows are dropped; duplicates keyed on CountryCode+Phone.
+    var totalBefore    = rows.length;
+    var invalidRemoved = 0;
+    var intlKept       = 0;
+    var seenPhones     = {};
+    var cleaned        = [];
+    rows.forEach(function(r) {
+      var info = normalizePhone(r['Phone'], r['CountryCode']);
+      if (!info.valid) { invalidRemoved++; return; }        // remove invalid
+      var key = info.cc + '-' + info.phone;
+      if (seenPhones[key]) return;                          // remove duplicate
+      seenPhones[key] = true;
+      r['CountryCode'] = info.cc;                           // split-out calling code
+      r['Phone']       = info.phone;                        // India → RIGHT(…,10)
+      if (info.type === 'intl') intlKept++;
+      cleaned.push(r);
     });
-    var dupesRemoved = totalBefore - rows.length;
+    rows = cleaned;
+    var dupesRemoved = totalBefore - rows.length - invalidRemoved;
 
     statusText.textContent = 'Finalising…';
     var labels = {
@@ -661,12 +786,17 @@ function generate() {
     var fixedRows = orgPhones.map(function(phone) {
       var row = {};
       // For org/fixed rows, find the matching row from mainData if it exists
-      var mainRow = mainData.filter(function(mr){ return String(mr['Phone']).trim() === phone; })[0] || {};
+      var mainRow = mainData.filter(function(mr){
+        var ni = normalizePhone(mr['Phone'], mr['CountryCode']);
+        return ni.valid && ni.phone === phone;
+      })[0] || {};
       tpl.cols.forEach(function(c) {
         if (c === 'Name') {
           row[c] = tpl.nameBlank ? '' : (mainRow['Name'] != null && String(mainRow['Name']).trim() !== '' ? mainRow['Name'] : (tpl.nameDefault != null ? tpl.nameDefault : 'there'));
         } else if (c === 'Phone') {
           row[c] = phone;
+        } else if (c === 'CountryCode') {
+          row[c] = '91';
         } else if (mainRow[c] != null && String(mainRow[c]).trim() !== '') {
           // Use value from the CSV if available
           row[c] = mainRow[c];
@@ -682,7 +812,13 @@ function generate() {
     var splitRows = rows.filter(function(r) {
       return orgPhones.indexOf(String(r['Phone']).trim()) === -1;
     });
-    var parts = splitBySize(splitRows, tpl.cols, maxBytes);
+    // Every output file also carries the 2 fixed org rows (plus the header),
+    // so reserve their byte cost when deciding how many parts to split into —
+    // that keeps the final files comfortably under the 2 MB limit.
+    var fixedBytes = fixedRows.reduce(function(a, row) {
+      return a + new Blob([tpl.cols.map(function(c){ return esc(row[c]); }).join(',') + '\n']).size;
+    }, 0);
+    var parts = splitBySize(splitRows, tpl.cols, maxBytes, fixedBytes);
 
     parts.forEach(function(pRows, i){
       // Header=row1, fixedRows=row2&row3, real data from row4 onwards
@@ -694,45 +830,47 @@ function generate() {
       blobs.push({ blob: blob, _url: url, name: dayLabel + '_Certificate_' + dateStr + suffix + '.csv', rows: finalRows.length, size: blob.size });
     });
 
-    renderResults(rows, tpl.cols, maxBytes, dupesRemoved);
+    renderResults(rows, tpl.cols, maxBytes, dupesRemoved, invalidRemoved, intlKept);
   }, 60);
 }
 
-function splitBySize(rows, cols, maxBytes) {
+function splitBySize(rows, cols, maxBytes, perFileOverhead) {
   if (!rows.length) return [];
 
+  var SAFETY      = 1024;                                     // small cushion vs. estimate drift
   var headerBytes = new Blob([cols.join(',') + '\n']).size;
+  var fixed       = headerBytes + (perFileOverhead || 0);     // header + org rows, in EVERY file
+  var budget      = Math.max(1, maxBytes - fixed - SAFETY);   // bytes left for data rows per file
 
-  // Pre-compute every row's byte size once
+  // Pre-compute every data row's byte size once.
   var rowSizes = rows.map(function(row) {
-    var line = cols.map(function(c) { return esc(row[c]); }).join(',') + '\n';
-    return new Blob([line]).size;
+    return new Blob([cols.map(function(c) { return esc(row[c]); }).join(',') + '\n']).size;
   });
 
-  // Check if splitting into `n` equal parts all fit under maxBytes
-  function fitsInParts(n) {
-    var perPart = Math.ceil(rows.length / n);
-    for (var s = 0; s < rows.length; s += perPart) {
-      var chunk = rowSizes.slice(s, s + perPart);
-      var chunkBytes = headerBytes + chunk.reduce(function(a, b) { return a + b; }, 0);
-      if (chunkBytes > maxBytes) return false;
+  // Does an EVEN split into `n` parts keep every part within budget?
+  // Rows are handed out base-or-base+1 at a time so parts differ by ≤ 1 row.
+  function fits(n) {
+    var base = Math.floor(rows.length / n), rem = rows.length % n, idx = 0;
+    for (var p = 0; p < n; p++) {
+      var take = base + (p < rem ? 1 : 0), bytes = 0;
+      for (var k = 0; k < take; k++) bytes += rowSizes[idx++];
+      if (bytes > budget) return false;
     }
     return true;
   }
 
-  // Binary search: find the minimum number of parts needed
-  var lo = 1, hi = rows.length, numParts = rows.length;
-  while (lo <= hi) {
-    var mid = Math.floor((lo + hi) / 2);
-    if (fitsInParts(mid)) { numParts = mid; hi = mid - 1; }
-    else lo = mid + 1;
-  }
+  // Fewest equal parts whose every chunk fits under the limit.
+  var numParts = 1;
+  while (!fits(numParts) && numParts < rows.length) numParts++;
 
-  // Split into exactly numParts equal chunks
-  var rowsPerPart = Math.ceil(rows.length / numParts);
-  var parts = [];
-  for (var i = 0; i < rows.length; i += rowsPerPart) {
-    parts.push(rows.slice(i, i + rowsPerPart));
+  // Distribute as evenly as possible — every file gets the same row count ±1,
+  // so the resulting files come out essentially equal in size.
+  var base = Math.floor(rows.length / numParts), rem = rows.length % numParts;
+  var parts = [], idx = 0;
+  for (var p = 0; p < numParts; p++) {
+    var take = base + (p < rem ? 1 : 0);
+    parts.push(rows.slice(idx, idx + take));
+    idx += take;
   }
   return parts;
 }
@@ -744,22 +882,32 @@ function esc(v) {
     ? '"' + s.replace(/"/g, '""') + '"' : s;
 }
 
-function renderResults(allRows, cols, maxBytes, dupesRemoved) {
+function renderResults(allRows, cols, maxBytes, dupesRemoved, invalidRemoved, intlKept) {
   statusBar.classList.remove('show');
   resultsCard.classList.add('show');
   resultTag.textContent = '\u2713 ' + blobs.length + ' file' + (blobs.length > 1 ? 's' : '') + ' ready';
-  var dupTag = document.getElementById('dupTag');
-  if (dupesRemoved > 0) {
-    if (!dupTag) {
-      dupTag = document.createElement('div');
-      dupTag.id = 'dupTag';
-      dupTag.style.cssText = 'font-size:12px;font-weight:700;letter-spacing:.5px;padding:5px 12px;border-radius:100px;background:rgba(255,92,92,.12);border:1px solid rgba(255,92,92,.3);color:#ff5c5c;';
-      document.querySelector('.result-header').appendChild(dupTag);
+  // Header status pills — duplicates removed / invalid removed / international kept
+  function headerPill(id, count, text, color) {
+    var pill = document.getElementById(id);
+    if (count > 0) {
+      if (!pill) {
+        pill = document.createElement('div');
+        pill.id = id;
+        document.querySelector('.result-header').appendChild(pill);
+      }
+      pill.style.cssText = 'font-size:12px;font-weight:700;letter-spacing:.5px;padding:5px 12px;'
+        + 'border-radius:100px;background:' + color.bg + ';border:1px solid ' + color.br + ';color:' + color.fg + ';';
+      pill.textContent = text;
+    } else if (pill) {
+      pill.remove();
     }
-    dupTag.textContent = '\u26a0 ' + dupesRemoved + ' duplicate' + (dupesRemoved > 1 ? 's' : '') + ' removed';
-  } else {
-    if (dupTag) { dupTag.remove(); }
   }
+  var red   = { bg:'rgba(255,92,92,.12)',   br:'rgba(255,92,92,.3)',   fg:'#ff5c5c' };
+  var amber = { bg:'rgba(247,217,122,.12)', br:'rgba(247,217,122,.35)', fg:'#f7d97a' };
+  var green = { bg:'rgba(62,207,142,.12)',  br:'rgba(62,207,142,.3)',  fg:'#3ecf8e' };
+  headerPill('dupTag',     dupesRemoved,   '\u26a0 ' + dupesRemoved + ' duplicate' + (dupesRemoved > 1 ? 's' : '') + ' removed', red);
+  headerPill('invalidTag', invalidRemoved, '\u26a0 ' + invalidRemoved + ' invalid removed', amber);
+  headerPill('intlTag',    intlKept,       '\ud83c\udf0d ' + intlKept + ' international', green);
 
   partsList.innerHTML = '';
   blobs.forEach(function(b){
