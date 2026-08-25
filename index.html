@@ -392,7 +392,7 @@ html.hz-paused .card-title::before{
       <div class="session-check"></div>
       <div class="session-icon">📆</div>
       <div class="session-name">Tuesday</div>
-      <div class="session-cols">brname · certlink · ylink<br>message · dmus</div>
+      <div class="session-cols">certlink · ylink<br>message · dmus</div>
     </button>
 
     <button class="session-btn" data-day="thursday">
@@ -482,17 +482,17 @@ var T = {
   },
   tuesday: {
     cols: ['Name','CountryCode','Phone','AllowBroadcast','AllowSMS',
-           'brname','certlink','ylink','message','dmus'],
+           'certlink','ylink','message','dmus'],
     k: {
       CountryCode:    '91',
       AllowBroadcast: 'TRUE',
       AllowSMS:       'TRUE',
-      brname:   'Be10X',
       certlink: 'https://verify.certx.in/submit/9ede0ee0-a362-47a2-85a3-eba642519c44',
       ylink:    'https://www.youtube.com/watch?v=1zS7-XgxAO0',
       message:  "Now it's time to unlock your special bonus worth Rs. 1799.",
       dmus:     'DM us the LinkedIn post link for verification. Once verified, your bonus will be processed.'
-    }
+    },
+    nameBlank: true
   },
   thursday: {
     cols: ['Name','CountryCode','Phone','AllowBroadcast','AllowSMS',
@@ -816,19 +816,36 @@ function generate() {
     // Every output file also carries the 2 fixed org rows (plus the header),
     // so reserve their byte cost when deciding how many parts to split into —
     // that keeps the final files comfortably under the 2 MB limit.
+    // Papa.unparse writes CRLF line endings, so measure rows with '\r\n'.
     var fixedBytes = fixedRows.reduce(function(a, row) {
-      return a + new Blob([tpl.cols.map(function(c){ return esc(row[c]); }).join(',') + '\n']).size;
+      return a + new Blob([tpl.cols.map(function(c){ return esc(row[c]); }).join(',') + '\r\n']).size;
     }, 0);
     var parts = splitBySize(splitRows, tpl.cols, maxBytes, fixedBytes);
 
-    parts.forEach(function(pRows, i){
-      // Header=row1, fixedRows=row2&row3, real data from row4 onwards
-      var finalRows = fixedRows.concat(pRows);
-      var csv  = Papa.unparse({ fields: tpl.cols, data: finalRows });
-      var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      var suffix = parts.length > 1 ? '_Part' + (i+1) : '';
-      var url = URL.createObjectURL(blob);
-      blobs.push({ blob: blob, _url: url, name: dayLabel + '_Certificate_' + dateStr + suffix + '.csv', rows: finalRows.length, size: blob.size });
+    // Build the real CSV text for a given set of parts.
+    function buildParts(ps) {
+      return ps.map(function(pRows){
+        // Header=row1, fixedRows=row2&row3, real data from row4 onwards
+        var finalRows = fixedRows.concat(pRows);
+        var csv  = Papa.unparse({ fields: tpl.cols, data: finalRows });
+        var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        return { blob: blob, rows: finalRows.length, size: blob.size };
+      });
+    }
+
+    // HARD CHECK on the real byte size: if any part is still over the limit,
+    // add one more part and rebuild until every file is genuinely under 2 MB.
+    var built = buildParts(parts), guard = 0;
+    while (built.some(function(b){ return b.size > maxBytes; }) &&
+           parts.length < splitRows.length && guard++ < 200) {
+      parts = evenSplit(splitRows, parts.length + 1);
+      built = buildParts(parts);
+    }
+
+    built.forEach(function(b, i){
+      var suffix = built.length > 1 ? '_Part' + (i+1) : '';
+      var url = URL.createObjectURL(b.blob);
+      blobs.push({ blob: b.blob, _url: url, name: dayLabel + '_Certificate_' + dateStr + suffix + '.csv', rows: b.rows, size: b.size });
     });
 
     renderResults(rows, tpl.cols, maxBytes, dupesRemoved, invalidRemoved, intlKept);
@@ -838,14 +855,16 @@ function generate() {
 function splitBySize(rows, cols, maxBytes, perFileOverhead) {
   if (!rows.length) return [];
 
-  var SAFETY      = 1024;                                     // small cushion vs. estimate drift
-  var headerBytes = new Blob([cols.join(',') + '\n']).size;
+  // Papa.unparse writes CRLF line endings — measure with '\r\n' or every row
+  // comes out 1 byte heavier than estimated and the file tips over 2 MB.
+  var SAFETY      = 8192;                                     // cushion vs. estimate drift
+  var headerBytes = new Blob([cols.join(',') + '\r\n']).size;
   var fixed       = headerBytes + (perFileOverhead || 0);     // header + org rows, in EVERY file
   var budget      = Math.max(1, maxBytes - fixed - SAFETY);   // bytes left for data rows per file
 
   // Pre-compute every data row's byte size once.
   var rowSizes = rows.map(function(row) {
-    return new Blob([cols.map(function(c) { return esc(row[c]); }).join(',') + '\n']).size;
+    return new Blob([cols.map(function(c) { return esc(row[c]); }).join(',') + '\r\n']).size;
   });
 
   // Does an EVEN split into `n` parts keep every part within budget?
@@ -866,9 +885,14 @@ function splitBySize(rows, cols, maxBytes, perFileOverhead) {
 
   // Distribute as evenly as possible — every file gets the same row count ±1,
   // so the resulting files come out essentially equal in size.
-  var base = Math.floor(rows.length / numParts), rem = rows.length % numParts;
+  return evenSplit(rows, numParts);
+}
+
+// Split rows into n chunks of near-equal length (differ by at most 1 row).
+function evenSplit(rows, n) {
+  var base = Math.floor(rows.length / n), rem = rows.length % n;
   var parts = [], idx = 0;
-  for (var p = 0; p < numParts; p++) {
+  for (var p = 0; p < n; p++) {
     var take = base + (p < rem ? 1 : 0);
     parts.push(rows.slice(idx, idx + take));
     idx += take;
