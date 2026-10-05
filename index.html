@@ -202,6 +202,19 @@ h1 em{font-style:normal;background:var(--gold-g);-webkit-background-clip:text;-w
 .session-name{font-size:15px;font-weight:700;margin-bottom:6px;position:relative;z-index:1;}
 .session-cols{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;line-height:1.7;position:relative;z-index:1;}
 
+/* SESSION NAME FIELD */
+.session-field{margin-top:16px;}
+.session-field label{display:block;font-size:12px;font-weight:700;letter-spacing:.5px;color:var(--muted);margin-bottom:8px;}
+.session-field label span{font-weight:500;text-transform:none;letter-spacing:0;}
+.session-field label code{font-family:'JetBrains Mono',monospace;color:var(--fairy);font-size:11px;}
+.session-field input{
+  width:100%;background:var(--s2);border:1.5px solid var(--border2);border-radius:12px;
+  padding:13px 16px;color:var(--text);font-family:'Quicksand',sans-serif;font-size:14px;font-weight:600;
+  outline:none;transition:border-color .2s,box-shadow .2s;
+}
+.session-field input:focus{border-color:var(--accent);box-shadow:0 0 16px rgba(62,207,142,.18);}
+.session-field input::placeholder{color:var(--muted);font-weight:500;}
+
 /* GENERATE BTN */
 .gen-btn{
   width:100%;padding:18px;background:var(--accent-g);color:#071a1f;border:none;
@@ -371,37 +384,41 @@ html.hz-paused .card-title::before{
       <div class="session-check"></div>
       <div class="session-icon">🌅</div>
       <div class="session-name">Sunday Afternoon</div>
-      <div class="session-cols">certlink · notes · datetime<br>brname · faqdoc · bonus</div>
+      <div class="session-cols">certlink · notes · datetime<br>brname · faqdoc · bonus · session</div>
     </button>
 
     <button class="session-btn" data-day="sunday_evening">
       <div class="session-check"></div>
       <div class="session-icon">🌆</div>
       <div class="session-name">Sunday Evening</div>
-      <div class="session-cols">certlink · notes · message<br>bns · link</div>
+      <div class="session-cols">certlink · notes · message<br>bns · link · session</div>
     </button>
 
     <button class="session-btn" data-day="monday">
       <div class="session-check"></div>
       <div class="session-icon">📅</div>
       <div class="session-name">Monday</div>
-      <div class="session-cols">certlink · wel<br>linkedinpage · message · brname</div>
+      <div class="session-cols">certlink · wel<br>linkedinpage · message · brname · session</div>
     </button>
 
     <button class="session-btn" data-day="tuesday">
       <div class="session-check"></div>
       <div class="session-icon">📆</div>
       <div class="session-name">Tuesday</div>
-      <div class="session-cols">certlink · ylink<br>message · dmus</div>
+      <div class="session-cols">certlink · ylink<br>message · dmus · session</div>
     </button>
 
     <button class="session-btn" data-day="thursday">
       <div class="session-check"></div>
       <div class="session-icon">🗓️</div>
       <div class="session-name">Thursday</div>
-      <div class="session-cols">certlink · bns · brname</div>
+      <div class="session-cols">certlink · bns · brname · session</div>
     </button>
 
+  </div>
+  <div class="session-field">
+    <label for="sessionName">Session name <span>(goes into the <code>session</code> column on every row)</span></label>
+    <input type="text" id="sessionName" value="AI Tools and Side Income" placeholder="e.g. AI Tools and Side Income" />
   </div>
 </div>
 
@@ -438,7 +455,7 @@ html.hz-paused .card-title::before{
 var T = {
   sunday_afternoon: {
     cols: ['Name','CountryCode','Phone','AllowBroadcast','AllowSMS',
-           'certlink','notes','datetime','brname','faqdoc','bonus'],
+           'certlink','notes','datetime','brname','faqdoc','bonus','session'],
     k: {
       CountryCode:    '91',
       AllowBroadcast: 'TRUE',
@@ -448,12 +465,13 @@ var T = {
       datetime:  '3rd May',
       brname:    'Be10X',
       faqdoc:    'https://link.be10x.in/AI-Tools-Workshop-Post-WS-FAQs',
-      bonus:     'special bonus worth Rs. 1799.'
+      bonus:     'special bonus worth Rs. 1799.',
+      session:   'AI Tools and Side Income'
     }
   },
   sunday_evening: {
     cols: ['Name','CountryCode','Phone','AllowBroadcast','AllowSMS',
-           'certlink','notes','message','bns','link'],
+           'certlink','notes','message','bns','link','session'],
     k: {
       CountryCode:    '91',
       AllowBroadcast: 'TRUE',
@@ -462,13 +480,14 @@ var T = {
       notes:     'https://link.be10x.in/Notes-AI-Tools-Workshop',
       message:   "Today's Bonus Is LIVE!",
       bns:       'special bonus worth Rs. 1799',
-      link:      'https://www.linkedin.com/company/be10x-in'
+      link:      'https://www.linkedin.com/company/be10x-in',
+      session:   'AI Tools and Side Income'
     },
     nameBlank: true
   },
   monday: {
     cols: ['Name','CountryCode','Phone','AllowBroadcast','AllowSMS',
-           'certlink','wel','linkedinpage','message','brname'],
+           'certlink','wel','linkedinpage','message','brname','session'],
     k: {
       CountryCode:    '91',
       AllowBroadcast: 'TRUE',
@@ -477,12 +496,13 @@ var T = {
       wel:          "Don't Miss Out on Your Bonus worth 1799 rs.!",
       linkedinpage: 'https://www.linkedin.com/company/be10x-in/',
       message:      'Your special bonus will only be processed once we receive your DM.',
-      brname:       'Be10X'
+      brname:       'Be10X',
+      session:      'AI Tools and Side Income'
     }
   },
   tuesday: {
     cols: ['Name','CountryCode','Phone','AllowBroadcast','AllowSMS',
-           'certlink','ylink','message','dmus'],
+           'certlink','ylink','message','dmus','session'],
     k: {
       CountryCode:    '91',
       AllowBroadcast: 'TRUE',
@@ -490,20 +510,22 @@ var T = {
       certlink: 'https://verify.certx.in/submit/9ede0ee0-a362-47a2-85a3-eba642519c44',
       ylink:    'https://www.youtube.com/watch?v=1zS7-XgxAO0',
       message:  "Now it's time to unlock your special bonus worth Rs. 1799.",
-      dmus:     'DM us the LinkedIn post link for verification. Once verified, your bonus will be processed.'
+      dmus:     'DM us the LinkedIn post link for verification. Once verified, your bonus will be processed.',
+      session:  'AI Tools and Side Income'
     },
     nameBlank: true
   },
   thursday: {
     cols: ['Name','CountryCode','Phone','AllowBroadcast','AllowSMS',
-           'certlink','bns','brname'],
+           'certlink','bns','brname','session'],
     k: {
       CountryCode:    '91',
       AllowBroadcast: 'TRUE',
       AllowSMS:       'TRUE',
       certlink:     'https://verify.certx.in/submit/9ede0ee0-a362-47a2-85a3-eba642519c44',
       bns:          'special bonus worth Rs. 1799',
-      brname:       'Be10X'
+      brname:       'Be10X',
+      session:      'AI Tools and Side Income'
     },
     nameDefault: 'there'
   }
@@ -714,6 +736,12 @@ function generate() {
     }
   }
 
+  // Session name: whatever is typed in the box wins; blank box falls back to the
+  // CSV's own session column, then to the template default.
+  var sessionInput = $('sessionName');
+  var typedSession = sessionInput ? String(sessionInput.value).trim() : '';
+  if (typedSession) tpl.k['session'] = typedSession;
+
   statusBar.classList.add('show');
   statusText.textContent = 'Building certificate rows…';
   resultsCard.classList.remove('show');
@@ -726,6 +754,8 @@ function generate() {
       tpl.cols.forEach(function(c){
         if (c === 'Name') {
           out[c] = tpl.nameBlank ? '' : (r['Name'] != null && String(r['Name']).trim() !== '' ? r['Name'] : (tpl.nameDefault != null ? tpl.nameDefault : ''));
+        } else if (c === 'session' && typedSession) {
+          out[c] = typedSession;
         } else if (r[c] != null && String(r[c]).trim() !== '') {
           // Always prefer value from the uploaded CSV file
           out[c] = r[c];
@@ -798,6 +828,8 @@ function generate() {
           row[c] = phone;
         } else if (c === 'CountryCode') {
           row[c] = '91';
+        } else if (c === 'session' && typedSession) {
+          row[c] = typedSession;
         } else if (mainRow[c] != null && String(mainRow[c]).trim() !== '') {
           // Use value from the CSV if available
           row[c] = mainRow[c];
